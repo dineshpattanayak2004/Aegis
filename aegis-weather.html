@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050914">
+<title>AEGIS · Weather & Calamity Watch</title>
+<style>
+:root{--bg:#050914;--card:rgba(12,20,38,.72);--line:rgba(0,229,255,.18);--cy:#00e5ff;--rd:#ff3b5c;--tx:#e6f1ff;--mu:#7d93b5}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow-x:hidden;padding:0 12px env(safe-area-inset-bottom)}
+.sky{position:fixed;inset:0;z-index:-1;transition:background 1.2s ease;opacity:.55}
+#fx{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+main{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:10px 0 40px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0}
+.brand{font-weight:800;letter-spacing:.3em;color:var(--cy);text-shadow:0 0 14px var(--cy);font-size:20px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{background:rgba(0,0,0,.35);border:1px solid var(--cy);color:var(--cy);padding:8px 12px;border-radius:10px;font:600 12px system-ui;letter-spacing:.04em;cursor:pointer}
+.btn:hover{background:rgba(0,229,255,.14)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:4px 0;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--tx);padding:7px 13px;border-radius:999px;font-size:13px;cursor:pointer}
+.chip.on{background:var(--cy);color:#001419;border-color:var(--cy);font-weight:700;box-shadow:0 0 14px rgba(0,229,255,.5)}
+.sel{background:rgba(0,0,0,.35);color:var(--tx);border:1px solid var(--cy);border-radius:999px;padding:7px 14px;font-size:14px;max-width:100%}
+.sel option{background:#0a1224;color:#e6f1ff}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));margin-top:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 40px rgba(0,0,0,.35);min-width:0}
+.span2{grid-column:span 2}
+@media(max-width:640px){.span2{grid-column:auto}}
+.card.danger{border-color:var(--rd);box-shadow:0 0 36px rgba(255,59,92,.35)}
+.lbl{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--mu)}
+h3{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--cy);margin-bottom:10px;font-weight:700}
+.hero{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.temp{font-size:clamp(60px,15vw,104px);font-weight:200;line-height:1;margin:6px 0}
+.temp span{font-size:.36em;color:var(--mu);vertical-align:top}
+.cond{font-size:18px;font-weight:600}
+.big{width:clamp(96px,24vw,156px);height:auto;animation:float 4s ease-in-out infinite;filter:drop-shadow(0 0 22px rgba(0,229,255,.45));flex:none}
+@keyframes float{50%{transform:translateY(-8px)}}
+.spin{transform-origin:32px 32px;animation:sp 14s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px}
+@media(max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}}
+.gauge{text-align:center;font-size:11px;color:var(--mu);letter-spacing:.08em;text-transform:uppercase}
+.ring{width:72px;height:72px;margin:0 auto 6px;border-radius:50%;background:conic-gradient(var(--cy) calc(var(--p)*1%),rgba(255,255,255,.08) 0);display:grid;place-items:center;box-shadow:0 0 16px rgba(0,229,255,.2)}
+.ring span{width:58px;height:58px;border-radius:50%;background:#0a1224;display:grid;place-items:center;color:var(--tx);font-weight:700;font-size:12px;letter-spacing:0;text-transform:none}
+.risk{text-align:center}
+.risk .ring{width:160px;height:160px;background:conic-gradient(#ff1744 calc(var(--p)*1%),rgba(255,255,255,.08) 0)}
+.risk .ring span{width:136px;height:136px;font-size:40px;font-weight:200}
+#rad{width:100%;max-width:300px;height:auto;display:block;margin:auto}
+#seis{width:100%;height:auto;display:block}
+#hour svg{width:100%;height:auto;display:block}
+.days{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.days::-webkit-scrollbar{display:none}
+.day{flex:1 0 74px;text-align:center;padding:10px 4px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06)}
+.day svg{width:38px;height:38px;display:block;margin:6px auto}
+.day b{font-size:16px}
+.day span{color:var(--mu);font-size:14px}
+.banner{display:none;position:sticky;top:0;z-index:60;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 14px 12px;margin:0 -12px;color:#fff;box-shadow:0 8px 30px rgba(0,0,0,.6)}
+.banner.on{display:flex}
+.banner.emerg{background:linear-gradient(90deg,#8e0019,#ff1744);animation:pulse 1s ease-in-out infinite alternate}
+.banner.warn{background:linear-gradient(90deg,#bf360c,#ff6d00)}
+.banner.watch{background:linear-gradient(90deg,#f57f17,#ffca28);color:#111}
+.banner.adv{background:linear-gradient(90deg,#006064,#00acc1)}
+@keyframes pulse{to{filter:brightness(1.4)}}
+.banner .msg{flex:1;min-width:0;font-size:14px}
+.banner b{display:block;font-size:16px;margin:3px 0}
+.pill{display:inline-block;background:rgba(0,0,0,.3);padding:2px 8px;border-radius:6px;font-size:11px;letter-spacing:.12em;font-weight:700}
+.banner button{background:rgba(0,0,0,.3);border:0;color:inherit;padding:8px 11px;border-radius:9px;cursor:pointer;font-size:14px}
+.tsu{display:none;margin-top:12px}
+.tsu.on{display:block}
+.eta{font:200 52px/1 ui-monospace,Menlo,monospace;color:var(--rd);text-shadow:0 0 16px var(--rd);margin:8px 0}
+.bar{height:8px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#00e5ff,#ff1744);transition:width 1s linear}
+.wave{width:100%;height:60px;display:block;margin-top:10px}
+ol{padding-left:18px;font-size:14px;line-height:1.8;color:#cfe3ff}
+.feed{list-style:none;padding:0;font-size:13px}
+.feed li{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.feed i{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:0 0 8px currentColor}
+.feed span{color:var(--mu);font-variant-numeric:tabular-nums}
+.ck{display:flex;gap:10px;align-items:center;padding:9px 0;font-size:14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05)}
+.ck input{accent-color:var(--cy);width:18px;height:18px}
+body.cyber::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(0deg,rgba(0,229,255,.035) 0 1px,transparent 1px 3px)}
+body.cyber::after{content:"";position:fixed;left:-50%;right:-50%;bottom:-8%;height:45vh;pointer-events:none;z-index:-1;background-image:linear-gradient(rgba(0,229,255,.2) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.2) 1px,transparent 1px);background-size:60px 60px;transform:perspective(400px) rotateX(60deg);transform-origin:bottom;-webkit-mask-image:linear-gradient(transparent,#000);mask-image:linear-gradient(transparent,#000)}
+body.cyber .card{box-shadow:0 0 24px rgba(0,229,255,.15),inset 0 0 20px rgba(0,229,255,.04)}
+body.cyber h3{text-shadow:0 0 8px var(--cy)}
+body.cyber .brand{animation:flick 4s infinite}
+@keyframes flick{0%,19%,21%,23%,25%,54%,56%,100%{opacity:1}20%,24%,55%{opacity:.45}}
+body.night .sky{filter:brightness(.4)}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--cy);color:#001419;padding:10px 16px;border-radius:12px;font-weight:600;opacity:0;transition:.3s;pointer-events:none;z-index:99;font-size:14px}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="sky" id="sky"></div>
+<canvas id="fx"></canvas>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<linearGradient id="gSun" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff59d"/><stop offset="1" stop-color="#ff9800"/></linearGradient>
+<linearGradient id="gCloud" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#9fb4d6"/></linearGradient>
+<linearGradient id="gBolt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff176"/><stop offset="1" stop-color="#ff9100"/></linearGradient>
+<linearGradient id="gWave" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#40e0ff"/><stop offset="1" stop-color="#0a4a9a"/></linearGradient>
+<path id="cl" d="M18 46h30a11 11 0 0 0 .5-22 16 16 0 0 0-30-3A11 11 0 0 0 18 46z"/>
+<symbol id="i-sun" viewBox="0 0 64 64"><g class="spin" stroke="#ffd54f" stroke-width="3.5" stroke-linecap="round"><path d="M32 4v8M32 52v8M4 32h8M52 32h8M12 12l6 6M46 46l6 6M12 52l6-6M46 18l6-6"/></g><circle cx="32" cy="32" r="13" fill="url(#gSun)"/></symbol>
+<symbol id="i-cloud" viewBox="0 0 64 64"><use href="#cl" fill="url(#gCloud)"/></symbol>
+<symbol id="i-rain" viewBox="0 0 64 64"><use href="#cl" fill="url(#gCloud)" transform="translate(0 -8)"/><path d="M22 50l-3 7M32 50l-3 7M42 50l-3 7" stroke="#4fc3f7" stroke-width="3" stroke-linecap="round"/></symbol>
+<symbol id="i-storm" viewBox="0 0 64 64"><use href="#cl" fill="url(#gCloud)" transform="translate(0 -8)"/><path d="M34 40l-7 10h6l-4 10 11-13h-6l4-7z" fill="url(#gBolt)"/></symbol>
+<symbol id="i-snow" viewBox="0 0 64 64"><use href="#cl" fill="url(#gCloud)" transform="translate(0 -8)"/><circle cx="22" cy="53" r="3" fill="#e3f2fd"/><circle cx="32" cy="58" r="3" fill="#e3f2fd"/><circle cx="42" cy="53" r="3" fill="#e3f2fd"/></symbol>
+<symbol id="i-cyclone" viewBox="0 0 64 64"><path d="M32 32a4 4 0 1 1 4-4a10 10 0 1 1-10 10a16 16 0 1 1 16-16" fill="none" stroke="#80deea" stroke-width="4" stroke-linecap="round"/></symbol>
+<symbol id="i-heat" viewBox="0 0 64 64"><rect x="27" y="8" width="10" height="34" rx="5" fill="none" stroke="#ffab91" stroke-width="3"/><circle cx="32" cy="48" r="9" fill="#ff5252"/><path d="M48 14h8M48 24h8M48 34h8" stroke="#ffab91" stroke-width="3" stroke-linecap="round"/></symbol>
+<symbol id="i-quake" viewBox="0 0 64 64"><polyline points="4,34 14,34 20,18 28,50 36,12 44,40 50,34 60,34" fill="none" stroke="#ff5252" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+</defs>
+</svg>
+
+<div class="banner" id="banner" role="alert">
+  <svg id="bi" viewBox="0 0 64 64" width="36" height="36" style="flex:none"></svg>
+  <div class="msg"><span class="pill" id="bl"></span><b id="bt"></b><span id="bm"></span></div>
+  <button id="bx" aria-label="Dismiss">✕</button>
+</div>
+
+<main>
+  <div class="top">
+    <div class="brand">AEGIS</div>
+    <div class="row">
+      <button class="btn" id="bn">Enable alerts</button>
+      <button class="btn" id="bs">Sound: off</button>
+      <button class="btn" id="bv">Voice: off</button>
+      <button class="btn" id="bsh">Share</button>
+    </div>
+  </div>
+  <div class="chips" id="cities"></div>
+  <div class="chips" id="scen"></div>
+  <div class="chips" id="themes"></div>
+
+  <section class="grid">
+    <div class="card span2">
+      <div class="hero">
+        <div style="min-width:0">
+          <div class="lbl" id="place"></div>
+          <div class="temp" id="temp"></div>
+          <div class="cond" id="cond"></div>
+          <div class="lbl" id="when" style="margin-top:6px"></div>
+        </div>
+        <svg class="big" id="big" viewBox="0 0 64 64"></svg>
+      </div>
+      <div class="stats" id="stats"></div>
+    </div>
+
+    <div class="card" id="timingcard">
+      <h3><span class="lbl">Real-time</span> Timing Analytics</h3>
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+        <div style="flex:1 1 140px">
+          <div class="lbl" style="margin-bottom:4px">Live IST Clock</div>
+          <div style="font-size:22px;font-weight:800;letter-spacing:.08em"><span id="clock">--:--:--</span> <span id="clockdate" style="font-size:12px;color:var(--mu);font-weight:400"></span></div>
+        </div>
+        <div style="flex:1 1 140px">
+          <div class="lbl" style="margin-bottom:4px">Quakes / hr (India time)</div>
+          <div style="font-size:22px;font-weight:800;color:var(--rd)"><span id="rate">0.0</span><span>/hr</span></div>
+        </div>
+        <div style="flex:1 1 140px">
+          <div class="lbl" style="margin-bottom:4px">Quakes in last 60 min</div>
+          <div style="font-size:22px;font-weight:800"><span id="cnt60">0</span></div>
+        </div>
+        <div style="flex:1 1 140px">
+          <div class="lbl" style="margin-bottom:4px">Last quake (IST)</div>
+          <div style="font-size:13px"><span id="lastq">—</span></div>
+        </div>
+      </div>
+      <div style="margin-top:10px;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden">
+        <div id="ratebar" style="height:100%;width:0%;background:conic-gradient(#ff9100, #ff5252);transition:width .5s"></div>
+      </div>
+    </div>
+
+    <div class="card risk">
+      <h3>Calamity risk index</h3>
+      <div class="ring" id="risk"><span id="riskv"></span></div>
+      <div class="lbl" id="riskl" style="margin-top:12px;letter-spacing:.3em"></div>
+    </div>
+
+    <div class="card">
+      <h3>Radar · storm cells</h3>
+      <canvas id="rad" width="520" height="520"></canvas>
+    </div>
+
+    <div class="card" id="quakecard">
+      <h3>Seismograph</h3>
+      <canvas id="seis" width="520" height="220"></canvas>
+        <ul class="feed" id="qlist" style="margin-top:8px"></ul>
+      <div class="tsu" id="tsu">
+        <div class="lbl" id="tinfo">Tsunami model · Mw 7.6 · 18 km depth · 142 km offshore</div>
+        <div class="eta" id="eta">22:00</div>
+        <div class="lbl">ETA to coastline · est. wave 3.4 m</div>
+        <div class="bar"><i id="barf"></i></div>
+        <svg class="wave" viewBox="0 0 400 60" preserveAspectRatio="none">
+          <path id="wv" fill="url(#gWave)" opacity=".75"><animateTransform attributeName="transform" type="translate" from="0 0" to="-400 0" dur="2.5s" repeatCount="indefinite"/></path>
+        </svg>
+        <ol>
+          <li>Drop everything and move inland or uphill</li>
+          <li>Aim for at least 30 m elevation or 3 floors up</li>
+          <li>Do not wait for an official siren</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card span2">
+      <h3>24-hour trend</h3>
+      <div id="hour"></div>
+    </div>
+
+    <div class="card span2">
+      <h3>7-day outlook</h3>
+      <div class="days" id="days"></div>
+    </div>
+
+    <div class="card"><h3>Air quality</h3><div class="ring" id="aqi"><span id="aqiv">--</span></div><div class="lbl" id="aqil" style="margin-top:12px;text-align:center"></div><div class="lbl" id="aqip" style="margin-top:6px;text-align:center"></div></div>
+    <div class="card"><h3>Sun &amp; moon</h3><div id="sun"></div></div>
+    <div class="card span2"><h3>Disaster timeline</h3><ul class="feed"><li><b>2004</b>&nbsp;Indian Ocean tsunami, over 225,000 deaths across the region</li><li><b>2001</b>&nbsp;Gujarat earthquake (M7.7), about 20,000 deaths</li><li><b>1999</b>&nbsp;Odisha super cyclone, around 10,000 deaths</li><li><b>2013</b>&nbsp;Uttarakhand floods, thousands dead or missing</li><li><b>2018</b>&nbsp;Kerala floods, about 480 deaths</li></ul></div>
+    <div class='card span2'><h3>AI briefing</h3><div id='brief' style='font-size:14px;line-height:1.6;color:#cfe3ff'>Loading…</div><div class='lbl' id='anom' style='margin-top:10px;text-transform:none;letter-spacing:.02em'></div></div>
+    <div class='card span2'><h3>Ask AEGIS AI</h3><div class='row' style='margin-bottom:8px'><input id='akey' type='password' placeholder='Anthropic API key (local file only)' style='flex:1;min-width:180px;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 10px'></div><div id='chat' style='max-height:260px;overflow:auto;font-size:14px;line-height:1.5;display:flex;flex-direction:column;gap:8px'></div><div class='row' style='margin-top:10px'><input id='q' placeholder='Is it safe to travel tomorrow?' style='flex:1;min-width:0;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:10px'><button class='btn' id='ask'>Ask</button></div></div>
+    <div class="card">
+      <h3>Alert feed</h3>
+      <ul class="feed" id="log"><li><span>No alerts yet</span></li></ul>
+    </div>
+        <div class="card">
+      <h3>Go-bag checklist</h3>
+      <div class="lbl" id="badge" style="margin-bottom:6px"></div>
+      <div id="ck"></div>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const C=[['Andhra Pradesh',3],['Arunachal Pradesh',-4],['Assam',2],['Bihar',3],['Chhattisgarh',3],['Goa',2],['Gujarat',3],['Haryana',2],['Himachal Pradesh',-6],['Jharkhand',2],['Karnataka',0],['Kerala',1],['Madhya Pradesh',2],['Maharashtra',2],['Manipur',0],['Meghalaya',-1],['Mizoram',-1],['Nagaland',0],['Odisha',2],['Punjab',0],['Rajasthan',5],['Sikkim',-4],['Tamil Nadu',2],['Telangana',2],['Tripura',1],['Uttar Pradesh',2],['Uttarakhand',-3],['West Bengal',1],['Andaman and Nicobar Islands',1],['Chandigarh',1],['Dadra and Nagar Haveli and Daman and Diu',3],['Delhi',2],['Jammu and Kashmir',-4],['Ladakh',-10],['Lakshadweep',1],['Puducherry',2]];
+const TH={neon:['Neon Cyber','#00e5ff','#050914'],aurora:['Aurora','#3dffa0','#03110d'],vapor:['Vaporwave','#ff71ce','#14062a'],tiranga:['Tiranga','#ff9933','#0b1410'],desert:['Thar Desert','#ffb300','#1a0f05'],himalaya:['Himalayan Ice','#9be7ff','#0a1622'],monsoon:['Monsoon','#4fd1c5','#06161c']};
+let ACC='#00e5ff';
+const L={clear:'Clear',storm:'Storm',cyclone:'Cyclone',flood:'Flood',heat:'Heat',snow:'Blizzard',quake:'Quake · Tsunami'};
+const S={
+clear:{n:'Clear & Sunny',ic:'sun',t:31,h:42,w:12,p:1012,uv:9,r:0,sn:0,b:0,risk:8,sky:'linear-gradient(170deg,#0a3a7a,#1e88e5 60%,#ffb74d)',a:null},
+storm:{n:'Severe Thunderstorm',ic:'storm',t:24,h:88,w:58,p:994,uv:2,r:1,sn:0,b:.03,risk:62,sky:'linear-gradient(170deg,#070b18,#1d2740 60%,#3d2f5c)',a:['warn','Severe Thunderstorm Warning','Winds to 90 km/h and hail expected. Move indoors, away from windows.']},
+cyclone:{n:'Category 4 Cyclone',ic:'cyclone',t:27,h:95,w:165,p:958,uv:1,r:1,sn:0,b:.05,risk:96,sky:'linear-gradient(170deg,#05070f,#14213d 55%,#2c3e6b)',a:['emerg','Cyclone Warning · Landfall in 6 h','Sustained winds near 220 km/h. Evacuate low-lying coastal zones now.']},
+flood:{n:'Flash Flood Risk',ic:'rain',t:26,h:96,w:30,p:1001,uv:1,r:.8,sn:0,b:.01,risk:78,sky:'linear-gradient(170deg,#0b1a2b,#1b3550 60%,#2f5d7c)',a:['watch','Flash Flood Watch','Up to 150 mm of rain in 6 h. Avoid underpasses and riverbanks.']},
+heat:{n:'Extreme Heat',ic:'heat',t:44,h:24,w:6,p:1008,uv:11,r:0,sn:0,b:0,risk:70,sky:'linear-gradient(170deg,#7a1f00,#e25822 55%,#ffd180)',a:['adv','Excessive Heat Advisory','44 °C with high UV. Hydrate, limit noon exposure, check on elders.']},
+snow:{n:'Blizzard',ic:'snow',t:-7,h:82,w:72,p:990,uv:1,r:0,sn:1,b:.005,risk:84,sky:'linear-gradient(170deg,#1c2a3d,#5f7b9c 60%,#c9dcef)',a:['warn','Blizzard Warning','Whiteout conditions and 40 cm of snow. Travel is not advised.']},
+quake:{n:'Major Earthquake',ic:'quake',t:22,h:70,w:20,p:1005,uv:5,r:0,sn:0,b:0,risk:99,q:1,sky:'linear-gradient(170deg,#1a0508,#3b0d14 60%,#6b1d2a)',a:['emerg','Tsunami Warning · M7.6 Offshore','Waves expected in about 22 minutes. Move to high ground immediately.']}
+};
+const LV={adv:['ADVISORY','#00acc1'],watch:['WATCH','#ffca28'],warn:['WARNING','#ff6d00'],emerg:['EMERGENCY','#ff1744']};
+const CK=['Water: 3 L per person for 3 days','Torch and spare batteries','First-aid kit and medicines','Documents in a waterproof bag','Know your evacuation route'];
+let cur='clear',city=0,soundOn=false,AC=null,eta=1320,blips=[],flash=0,parts=[],log=[],ang=0;
+const rd=$('rad'),rc=rd.getContext('2d'),sm=$('seis'),sc=sm.getContext('2d'),fx=$('fx'),fc=fx.getContext('2d'),buf=Array(160).fill(0);
+
+$('cities').innerHTML=`<select class="sel" id="st" aria-label="State or union territory">${C.map(([n],i)=>`<option value="${i}">${n}</option>`).join('')}</select>`;
+$('scen').innerHTML=Object.keys(L).map(k=>`<button class="chip" data-k="${k}">${L[k]}</button>`).join('');
+$('themes').innerHTML=Object.keys(TH).map(k=>`<button class="chip" data-th="${k}">${TH[k][0]}</button>`).join('');
+$('ck').innerHTML=CK.map((c,i)=>`<label class="ck"><input type="checkbox" data-i="${i}">${c}</label>`).join('');
+document.getElementById('ck').addEventListener('change',()=>{const n=document.querySelectorAll('#ck input:checked').length;$('badge').textContent=n===CK.length?'PREPARED · all items packed':`${n}/${CK.length} items ready · ${n*20}% prepared`});
+$('wv').setAttribute('d','M0 30q25-20 50 0'+' t50 0'.repeat(15)+' V60 H0Z');
+
+function applyTheme(k){
+  const[,cy,bg]=TH[k],r=document.documentElement.style;
+  r.setProperty('--cy',cy);r.setProperty('--bg',bg);r.setProperty('--line',cy+'2e');
+  ACC=cy;
+  document.body.classList.toggle('cyber',k==='neon');
+  document.querySelectorAll('[data-th]').forEach(el=>el.classList.toggle('on',el.dataset.th===k));
+}
+const COORDS=[[16.5,80.5],[27.1,93.6],[26.1,91.8],[25.6,85.1],[21.25,81.6],[15.5,73.8],[23.2,72.6],[30.7,76.8],[31.1,77.2],[23.3,85.3],[13.0,77.6],[8.5,76.9],[23.3,77.4],[19.1,72.9],[24.8,93.9],[25.6,91.9],[23.7,92.7],[25.7,94.1],[20.3,85.8],[30.7,76.8],[26.9,75.8],[27.3,88.6],[13.1,80.3],[17.4,78.5],[23.8,91.3],[26.9,80.9],[30.3,78.0],[22.6,88.4],[11.6,92.7],[30.7,76.8],[20.3,73.0],[28.6,77.2],[34.1,74.8],[34.2,77.6],[10.6,72.6],[11.9,79.8]];
+const WX=c=>c>=95?'storm':(c>=71&&c<=86)?'snow':c>=51?'rain':c>=2?'cloud':'sun';
+const WT=c=>c>=95?'Thunderstorm':c>=85?'Snow showers':c>=71?'Snowfall':c>=80?'Rain showers':c>=51?'Rain':c>=45?'Fog':c>=2?'Partly cloudy':'Clear sky';
+const SKY={sun:S.clear.sky,cloud:'linear-gradient(170deg,#1b2735,#4b6584 60%,#a9b9cc)',rain:S.flood.sky,storm:S.storm.sky,snow:S.snow.sky};
+let REALT=null;
+async function loadLive(){
+  const c=COORDS[city];
+  try{
+    const u=`https://api.open-meteo.com/v1/forecast?latitude=${c[0]}&longitude=${c[1]}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,pressure_msl,weather_code&hourly=temperature_2m&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max,sunrise,sunset&timezone=auto&forecast_days=7`;
+    const j=await (await fetch(u)).json(),d=j.current,dd=j.daily,ic=WX(d.weather_code);
+    const a=d.weather_code>=95?['warn','Thunderstorm warning','Thunderstorms reported here. Stay indoors and away from open areas.']:d.temperature_2m>=42?['adv','Heat advisory',`${Math.round(d.temperature_2m)} °C. Hydrate and avoid midday sun.`]:null;
+    S.live={n:WT(d.weather_code),ic,t:d.temperature_2m,h:d.relative_humidity_2m,w:Math.round(d.wind_speed_10m),p:Math.round(d.pressure_msl),uv:Math.round(dd.uv_index_max[0]||0),r:(ic==='rain'||ic==='storm')?1:0,sn:ic==='snow'?1:0,b:ic==='storm'?.03:0,risk:Math.min(100,(ic==='storm'?70:ic==='rain'?45:ic==='snow'?40:10)+(d.wind_speed_10m>50?20:0)+(d.temperature_2m>=42?20:0)),sky:SKY[ic],a,sr:dd.sunrise[0],ss:dd.sunset[0],lt:d.time,hourly:j.hourly.temperature_2m.slice(0,24),days:dd.weather_code.map((code,i)=>({day:i?new Date(dd.time[i]+'T12:00').toLocaleDateString('en',{weekday:'short'}):'Today',hi:Math.round(dd.temperature_2m_max[i]),lo:Math.round(dd.temperature_2m_min[i]),ic:WX(code)}))};
+    cur='live';render();loadAQI();
+    if(a)fire(a);
+  }catch(e){if(cur==='live')cur='clear';render()}
+}
+async function loadQuakes(){
+  try{
+    const j=await (await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson')).json();
+    const toIST=(ts)=>{const d=new Date(ts);return d.toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',hour12:false})+' IST'};
+    QUAKES=j.features.map(f=>({mag:f.properties.mag,place:f.properties.place,t:f.properties.time,tsu:f.properties.tsunami,depth:f.geometry.coordinates[2]})).sort((a,b)=>b.mag-a.mag);
+    $('qlist').innerHTML=QUAKES.slice(0,4).map(q=>`<li><i style="background:${q.mag>=6?'#ff1744':'#ffca28'};color:${q.mag>=6?'#ff1744':'#ffca28'}"></i><span>${toIST(q.t)}</span><b>M${q.mag.toFixed(1)}</b>&nbsp;${q.place}</li>`).join('')||'<li><span>No quakes in the last 2.5 days</span></li>';
+    const prev=REALT,big=QUAKES.find(q=>q.tsu&&q.mag>=6.5);
+    REALT=big||null;
+    $('tsu').classList.toggle('on',!!(S[cur].q||REALT));
+    $('quakecard').classList.toggle('danger',!!(S[cur].q||REALT));
+    if(big){$('tinfo').textContent=`Tsunami flagged by USGS · M${big.mag.toFixed(1)} · ${big.depth.toFixed(0)} km depth · ${big.place}`;$('eta').textContent='--:--';$('barf').style.width='0%';if(!prev||prev.t!==big.t)fire(['warn','Tsunami potential flagged',`M${big.mag.toFixed(1)} near ${big.place}. Follow official tsunami bulletins.`])}
+  }catch(e){$('qlist').innerHTML='<li><span>Live quake feed unavailable. Open the file locally to fetch it.</span></li>'}
+}
+let voiceOn=false;
+function speak(t){if('speechSynthesis' in window){const u=new SpeechSynthesisUtterance(t);u.lang='en-IN';u.rate=.95;speechSynthesis.speak(u)}}
+$('bv').onclick=()=>{voiceOn=!voiceOn;$('bv').textContent='Voice: '+(voiceOn?'on':'off');if(voiceOn)speak('Voice alerts on')};
+async function loadAQI(){const c=COORDS[city];try{const j=await (await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${c[0]}&longitude=${c[1]}&current=us_aqi,pm2_5`)).json(),v=Math.round(j.current.us_aqi),[lab,col]=v<=50?['GOOD','#3dffa0']:v<=100?['MODERATE','#ffca28']:v<=150?['UNHEALTHY FOR SENSITIVE','#ff9100']:v<=200?['UNHEALTHY','#ff1744']:v<=300?['VERY UNHEALTHY','#c51162']:['HAZARDOUS','#6a1b9a'];$('aqiv').textContent=v;$('aqi').style.background=`conic-gradient(${col} ${Math.min(100,v/3)}%,rgba(255,255,255,.08) 0)`;$('aqil').textContent=lab;$('aqip').textContent=`PM2.5 ${j.current.pm2_5} µg/m³`}catch(e){$('aqil').textContent='Air quality offline'}}
+function sunMoon(){const s=S[cur],ph=(((Date.now()-Date.UTC(2000,0,6,18,14))/864e5)/29.530588853)%1,i=Math.round(ph*8)%8,N=['New Moon','Waxing Crescent','First Quarter','Waxing Gibbous','Full Moon','Waning Gibbous','Last Quarter','Waning Crescent'],I=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'],f=x=>x?x.slice(11,16):'—',lt=s.lt?s.lt.slice(11,16):'',night=!!(lt&&s.sr&&(lt<s.sr.slice(11,16)||lt>s.ss.slice(11,16)));document.body.classList.toggle('night',night);$('sun').innerHTML=`<div class="stats" style="margin-top:0"><div class="gauge"><b style="font-size:22px;color:var(--tx)">${f(s.sr)}</b><br>Sunrise</div><div class="gauge"><b style="font-size:22px;color:var(--tx)">${f(s.ss)}</b><br>Sunset</div></div><div style="text-align:center;margin-top:14px;font-size:44px">${I[i]}</div><div class="lbl" style="text-align:center;margin-top:4px">${N[i]} · ${Math.round((1-Math.cos(ph*2*Math.PI))/2*100)}% lit</div>`}
+let QUAKES=[];
+let chatLog=[];
+const BE=location.protocol.startsWith('http')?location.origin:null;
+function sendChat(){if($('akey').value.trim()||!BE)ask();else askServer()}
+async function askServer(){
+  const q=$('q').value.trim();
+  if(!q)return;
+  $('q').value='';addMsg('user',q);
+  const pending=addMsg('ai','Thinking…'),s=S[cur],[cn,co]=C[city];
+  const ctx={location:cn,condition:s.n,temp_c:Math.round(s.t+(cur==='live'?0:co)),risk_index:s.risk,active_alert:s.a?s.a[1]:null,tsunami_flag:REALT?REALT.place:null,source:cur==='live'?'live data':'demo data'};
+  try{
+    const r=await fetch(BE+'/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({question:q,context:ctx})}),j=await r.json();
+    if(!r.ok)throw new Error(j.detail||'server error');
+    pending.textContent=j.reply;
+  }catch(e){pending.textContent='Server chat unavailable ('+e.message+').'}
+}
+function connectWS(){
+  if(!BE)return;
+  const ws=new WebSocket(BE.replace(/^http/,'ws')+'/ws');
+  ws.onmessage=e=>{const a=JSON.parse(e.data);fire([a.level,a.title,a.detail]);toast('Server alert: '+a.title)};
+  ws.onclose=()=>setTimeout(connectWS,15000);
+}
+function briefing(){const s=S[cur],[cn,co]=C[city],t=Math.round(s.t+(cur==='live'?0:co)),lvl=s.risk>=80?'high':s.risk>=50?'moderate':'low';$('brief').textContent=`${cn}: ${s.n}, about ${t}°C. Risk is ${lvl} (index ${s.risk}/100). `+(s.a?`Active alert: ${s.a[1]}. ${s.a[2]}`:'No active alerts.')+(REALT?` A tsunami-flagged M${REALT.mag.toFixed(1)} quake was reported near ${REALT.place}.`:'');$('anom').textContent=anomalies()}
+function anomalies(){const s=S[cur],hs=s.hourly||Array.from({length:24},(_,h)=>s.t+3*Math.sin((h-9)*Math.PI/12)),m=hs.reduce((a,b)=>a+b,0)/hs.length,sd=Math.sqrt(hs.reduce((a,b)=>a+(b-m)*(b-m),0)/hs.length)||1,z=hs.map((v,i)=>[i,(v-m)/sd]).filter(([,k])=>Math.abs(k)>1.8);return z.length?`Anomaly check: ${z.length} unusual hour(s) on the 24-hour curve, largest swing ${Math.max(...z.map(([,k])=>Math.abs(k))).toFixed(1)} sigma, first flagged at ${String(z[0][0]).padStart(2,'0')}:00.`:'Anomaly check: the 24-hour temperature curve is within normal variation.'}
+function addMsg(role,text){const d=document.createElement('div');d.style.cssText='align-self:'+(role==='user'?'flex-end':'flex-start')+';background:'+(role==='user'?'rgba(0,229,255,.18)':'rgba(255,255,255,.05)')+';border:1px solid var(--line);padding:8px 12px;border-radius:12px;max-width:90%;white-space:pre-wrap';d.textContent=text;$('chat').appendChild(d);$('chat').scrollTop=1e9;return d}
+async function ask(){
+  const q=$('q').value.trim(),key=$('akey').value.trim();
+  if(!q)return;
+  if(!key){toast('Paste an Anthropic API key first');return}
+  $('q').value='';addMsg('user',q);
+  const pending=addMsg('ai','Thinking…'),s=S[cur],[cn,co]=C[city];
+  const ctx={location:cn,condition:s.n,temp_c:Math.round(s.t+(cur==='live'?0:co)),humidity_pct:s.h,wind_kmh:s.w,pressure_hpa:s.p,uv:s.uv,risk_index:s.risk,active_alert:s.a?{level:s.a[0],title:s.a[1],detail:s.a[2]}:null,tsunami_flag:REALT?{mag:REALT.mag,place:REALT.place}:null,source:cur==='live'?'live data':'demo data'};
+  chatLog.push({role:'user',content:'Current conditions: '+JSON.stringify(ctx)+'\n\nQuestion: '+q});
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-5-5',max_tokens:400,system:'You are AEGIS, a calm weather and disaster-safety assistant for India. Answer briefly in plain language using only the conditions provided. If there is an active alert or tsunami flag, say so first and tell the user to follow official warnings from IMD, NDMA, or INCOIS. Never invent data.',messages:chatLog.slice(-8)})});
+    const j=await r.json();
+    if(!r.ok)throw new Error((j.error&&j.error.message)||'request failed');
+    const reply=j.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    chatLog.push({role:'assistant',content:reply});
+    pending.textContent=reply;
+  }catch(e){chatLog.pop();pending.textContent='Could not get an answer ('+e.message+'). This needs the file opened locally with a valid key.'}
+}
+$('ask').onclick=sendChat;
+$('q').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat()});
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2200)}
+
+function render(){
+  const s=S[cur],[cn,co]=C[city],t=s.t+(cur==='live'?0:co);
+  $('sky').style.background=s.sky;
+  $('place').textContent=cn+(cur==='live'?' · live · Open-Meteo':' · demo feed');
+  $('temp').innerHTML=Math.round(t)+'<span>°C</span>';
+  $('cond').textContent=s.n;
+  $('when').textContent=new Date().toLocaleString('en',{weekday:'long',hour:'2-digit',minute:'2-digit',hour12:false})+' IST';
+  $('big').innerHTML=`<use href="#i-${s.ic}"/>`;
+    $('stats').innerHTML=[['Humidity',s.h,s.h+'%'],['Wind',Math.min(100,s.w/1.8),s.w+' km/h'],['Pressure',Math.min(100,(s.p-950)/.6),s.p+' hPa'],['UV',s.uv/12*100,'UV '+s.uv]]
+    .map(([n,p,v])=>`<div class="gauge"><div class="ring" style="--p:${p.toFixed(0)}"><span>${v}</span></div>${n}</div>`).join('');
+  $('risk').style.setProperty('--p',s.risk);
+  $('riskv').textContent=s.risk;
+  $('riskl').textContent=s.risk<30?'LOW':s.risk<60?'MODERATE':s.risk<80?'HIGH':'EXTREME';
+  const hs=s.hourly||Array.from({length:24},(_,h)=>t+3*Math.sin((h-9)*Math.PI/12)),W=600,H=150,mn=Math.min(...hs)-1,mx=Math.max(...hs)+1;
+  const pts=hs.map((v,i)=>[24+i*(W-48)/23,H-(v-mn)/(mx-mn)*(H-30)-10]);
+  const d='M'+pts.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' L');
+  $('hour').innerHTML=`<svg viewBox="0 0 ${W} ${H+24}"><defs><linearGradient id="hg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${ACC}" stop-opacity=".4"/><stop offset="1" stop-color="${ACC}" stop-opacity="0"/></linearGradient></defs><path d="${d} L${W-24} ${H} L24 ${H}Z" fill="url(#hg)"/><path d="${d}" fill="none" stroke="${ACC}" stroke-width="3" stroke-linejoin="round" style="filter:drop-shadow(0 0 6px ${ACC})"/>${pts.map((p,i)=>i%4?'':`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#fff"/><text x="${p[0]}" y="${p[1]-10}" fill="#e6f1ff" font-size="14" text-anchor="middle">${Math.round(hs[i])}°</text><text x="${p[0]}" y="${H+18}" fill="#7d93b5" font-size="14" text-anchor="middle">${String(i).padStart(2,'0')}:00</text>`).join('')}</svg>`;
+  $('days').innerHTML=(s.days?s.days.map(d=>`<div class="day"><div class="lbl">${d.day}</div><svg viewBox="0 0 64 64"><use href="#i-${d.ic}"/></svg><b>${d.hi}°</b> <span>${d.lo}°</span></div>`).join(''):Array.from({length:7},(_,i)=>{
+    const hi=Math.round(t+((i*3+city)%4)-1),lo=hi-6-(i%3),ic=(s.ic==='sun'&&i%3===2)?'cloud':s.ic,day=i?new Date(Date.now()+i*864e5).toLocaleDateString('en',{weekday:'short'}):'Today';
+    return `<div class="day"><div class="lbl">${day}</div><svg viewBox="0 0 64 64"><use href="#i-${ic}"/></svg><b>${hi}°</b> <span>${lo}°</span></div>`;
+  }).join(''));
+  $('quakecard').classList.toggle('danger',!!s.q);
+  $('st').value=city;
+  $('tsu').classList.toggle('on',!!(s.q||REALT));
+  sunMoon();
+  briefing();
+}
+
+function fire(a){
+  const[lv,title,msg]=a,[lab,col]=LV[lv],s=S[cur];
+  $('banner').className='banner on '+lv;
+  $('bi').innerHTML=`<use href="#i-${s.ic}"/>`;
+  $('bl').textContent=lab;$('bt').textContent=title;$('bm').textContent=msg;
+  log.unshift({at:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}),lab,col,title});
+  log=log.slice(0,6);
+  $('log').innerHTML=log.map(l=>`<li><i style="background:${l.col};color:${l.col}"></i><span>${l.at}</span><b>${l.lab}</b>${l.title}</li>`).join('');
+  if(soundOn&&(lv==='emerg'||lv==='warn'))siren();
+  if(voiceOn)speak(lab+'. '+title+'. '+msg);
+  if(navigator.vibrate)navigator.vibrate(lv==='emerg'?[400,150,400,150,800]:[250,120,250]);
+  if('Notification' in window&&Notification.permission==='granted'){try{new Notification(lab+': '+title,{body:msg})}catch(e){}}
+}
+
+function setScen(k){
+  cur=k;const s=S[k];eta=1320;
+  blips=Array.from({length:s.r?18:4},()=>({a:Math.random()*6.283,d:s.w>100?Math.random()*.35:.15+Math.random()*.8}));
+  document.querySelectorAll('[data-k]').forEach(el=>el.classList.toggle('on',el.dataset.k===k));
+  render();
+  if(s.a)fire(s.a);else $('banner').classList.remove('on');
+}
+
+function siren(){
+  try{
+    AC=AC||new(window.AudioContext||window.webkitAudioContext)();
+    const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime;
+    o.type='sawtooth';g.gain.setValueAtTime(.05,t);g.gain.linearRampToValueAtTime(0,t+6);
+    o.frequency.setValueAtTime(700,t);
+    for(let i=0;i<6;i++){o.frequency.linearRampToValueAtTime(1300,t+i+.5);o.frequency.linearRampToValueAtTime(700,t+i+1)}
+    o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+6);
+  }catch(e){}
+}
+
+document.body.addEventListener('click',e=>{
+  const k=e.target.closest('[data-k]'),th=e.target.closest('[data-th]');
+  if(k)setScen(k.dataset.k);
+  if(th){applyTheme(th.dataset.th);toast(TH[th.dataset.th][0]+' theme')}
+});
+document.body.addEventListener('change',e=>{if(e.target.id==='st'){city=+e.target.value;loadLive()}});
+$('bx').onclick=()=>$('banner').classList.remove('on');
+$('bs').onclick=()=>{
+  soundOn=!soundOn;
+  try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();AC.resume()}catch(e){}
+  $('bs').textContent='Sound: '+(soundOn?'on':'off');
+  toast(soundOn?'Siren armed':'Siren muted');
+};
+$('bn').onclick=async()=>{
+  if(!('Notification' in window)){toast('Notifications not supported here');return}
+  const p=await Notification.requestPermission();
+  $('bn').textContent=p==='granted'?'Alerts on ✓':'Alerts blocked';
+};
+$('bsh').onclick=()=>{
+  const text=($('bt').textContent||'Weather & calamity watch')+' — '+$('bm').textContent;
+  if(navigator.share)navigator.share({title:'AEGIS',text}).catch(()=>{});else toast('Sharing not supported here');
+};
+
+function size(){fx.width=innerWidth;fx.height=innerHeight}
+addEventListener('resize',size);size();
+
+function frame(ts){
+  const s=S[cur],w=fx.width,h=fx.height;
+  fc.clearRect(0,0,w,h);
+  if(s.ic==='sun'){const g=fc.createRadialGradient(w*.85,h*.05,10,w*.85,h*.05,Math.max(w,h)*.5);g.addColorStop(0,'rgba(255,230,140,.45)');g.addColorStop(1,'rgba(255,230,140,0)');fc.fillStyle=g;fc.fillRect(0,0,w,h)}
+  if(s.b&&Math.random()<s.b)flash=1;
+  flash*=.9;
+  if(flash>.02){fc.fillStyle=`rgba(200,220,255,${flash*.35})`;fc.fillRect(0,0,w,h)}
+  if(s.r||s.sn)for(let k=0;k<(s.r?3:2);k++)parts.push({x:Math.random()*w,y:-10,v:s.sn?1.5+Math.random()*1.5:14+Math.random()*8});
+  if(parts.length>300)parts.splice(0,parts.length-300);
+  parts.forEach(p=>{
+    p.y+=p.v;
+    if(s.sn){p.x+=Math.sin(p.y/25)*.7+s.w/120;fc.fillStyle='rgba(255,255,255,.85)';fc.beginPath();fc.arc(p.x,p.y,2.2,0,6.283);fc.fill()}
+    else{p.x+=s.w/40;fc.strokeStyle='rgba(150,205,255,.5)';fc.lineWidth=1.2;fc.beginPath();fc.moveTo(p.x,p.y);fc.lineTo(p.x-s.w/30,p.y-p.v*1.3);fc.stroke()}
+  });
+  parts=parts.filter(p=>p.y<h+20);
+
+  const W=rd.width,H=rd.height,cx=W/2,cy=H/2,R=W/2-8;
+  rc.clearRect(0,0,W,H);
+  rc.fillStyle='rgba(0,20,30,.92)';rc.beginPath();rc.arc(cx,cy,R,0,6.283);rc.fill();
+  rc.strokeStyle=ACC+'38';rc.lineWidth=2;
+  for(let k=1;k<=4;k++){rc.beginPath();rc.arc(cx,cy,R*k/4,0,6.283);rc.stroke()}
+  rc.beginPath();rc.moveTo(cx,cy-R);rc.lineTo(cx,cy+R);rc.moveTo(cx-R,cy);rc.lineTo(cx+R,cy);rc.stroke();
+  ang+=.025;
+  rc.save();rc.translate(cx,cy);rc.beginPath();rc.moveTo(0,0);rc.arc(0,0,R,ang-.6,ang);rc.closePath();rc.fillStyle=ACC+'38';rc.fill();rc.restore();
+  blips.forEach(b=>{
+    const da=((ang-b.a)%6.283+6.283)%6.283,g=Math.max(0,1-da/1.5),x=cx+Math.cos(b.a)*b.d*R,y=cy+Math.sin(b.a)*b.d*R;
+    rc.beginPath();rc.arc(x,y,3+g*7,0,6.283);
+    rc.fillStyle=s.r?`rgba(255,80,110,${.3+g*.7})`:`rgba(255,200,80,${.3+g*.7})`;rc.fill();
+  });
+
+  buf.push((Math.random()-.5)*(s.q?34:3)+(s.q?Math.sin(ts/70)*22:0));buf.shift();
+  const SW=sm.width,SH=sm.height;
+  sc.clearRect(0,0,SW,SH);
+  sc.strokeStyle=s.q?'#ff5252':ACC;sc.lineWidth=2.5;sc.shadowBlur=10;sc.shadowColor=sc.strokeStyle;
+  sc.beginPath();
+  buf.forEach((v,i)=>{const x=i*SW/(buf.length-1),y=SH/2-v*(SH/120);i?sc.lineTo(x,y):sc.moveTo(x,y)});
+  sc.stroke();sc.shadowBlur=0;
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+setInterval(()=>{
+  if(!S[cur].q||REALT)return;
+  if(eta>0)eta--;
+  const m=String(Math.floor(eta/60)).padStart(2,'0'),sec=String(eta%60).padStart(2,'0');
+  $('eta').textContent=eta?m+':'+sec:'IMPACT';
+  $('barf').style.width=((1-eta/1320)*100)+'%';
+},1000);
+
+
+// Real-time IST clock (ticks every second)
+setInterval(()=>{
+  const d=new Date();
+  $('clock').textContent=d.toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})+' IST';
+  $('clockdate').textContent=d.toLocaleDateString('en',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+},1000);
+
+// Fetch real-time timing analytics from the backend (IST timezone)
+async function updateTimingAnalytics(){
+  try{
+    const r=await fetch('/api/timing');
+    const j=await r.json();
+    $('rate').textContent=j.analytics.rate_per_hour||0;
+    $('cnt60').textContent=j.analytics.quakes_last_60min||0;
+    $('lastq').textContent=j.analytics.last_quake_ist||'—';
+    const bar=$('ratebar');
+    bar.style.width=(Math.min(100,j.analytics.rate_per_hour||0)/20*100)+'%';
+  }catch(e){}
+  setTimeout(updateTimingAnalytics,30000);
+}
+updateTimingAnalytics();
+applyTheme('neon');setScen('clear');loadLive();loadQuakes();setInterval(loadQuakes,120000);connectWS();
+if('Notification' in window&&Notification.permission==='granted')$('bn').textContent='Alerts on ✓';
+</script>
+</body>
+</html>

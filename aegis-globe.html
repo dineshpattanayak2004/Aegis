@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AEGIS · 3D Globe</title>
+<style>
+html,body{margin:0;height:100%;background:#050914;overflow:hidden;font-family:system-ui,-apple-system,sans-serif;color:#e6f1ff}
+canvas{display:block;touch-action:none}
+#info{position:absolute;top:12px;left:12px;right:12px;max-width:340px;z-index:2;background:rgba(8,14,28,.86);border:1px solid rgba(0,229,255,.3);border-radius:14px;padding:12px 14px;font-size:13px;backdrop-filter:blur(8px)}
+h1{margin:0 0 6px;font-size:14px;letter-spacing:.25em;color:#00e5ff;text-shadow:0 0 10px #00e5ff}
+a{color:#00e5ff}
+</style>
+</head>
+<body>
+<div id="info">
+  <h1>AEGIS · GLOBE</h1>
+  <div id="timebar">
+    <span id="clock" style="font-size:16px;font-weight:700;letter-spacing:.08em">--:--:-- IST</span>
+    <span style="font-size:12px;color:#7d93b5;margin-left:10px" id="clockdate"></span>
+  </div>
+  <div id="globestats" style="margin-top:8px;font-size:12px;color:#7d93b5">
+    <span id="gtot">—</span> quakes · <span id="grate">0.0</span>/hr (IST)
+  </div>
+  <p style="color:#7d93b5;margin:8px 0 0">Drag to rotate. Red pins are tsunami-flagged. <a href="/">Back to dashboard</a></p>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const R = 1;
+const scene = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+cam.position.z = 3.2;
+const ren = new THREE.WebGLRenderer({ antialias: true });
+ren.setPixelRatio(devicePixelRatio);
+ren.setSize(innerWidth, innerHeight);
+document.body.appendChild(ren.domElement);
+
+const globe = new THREE.Group();
+scene.add(globe);
+globe.add(new THREE.Mesh(new THREE.SphereGeometry(R, 48, 32), new THREE.MeshBasicMaterial({ color: 0x0b3b5c, wireframe: true, transparent: true, opacity: 0.35 })));
+globe.add(new THREE.Mesh(new THREE.SphereGeometry(0.98, 48, 32), new THREE.MeshBasicMaterial({ color: 0x06203a })));
+
+function latLonToVector(lat, lon, r) {
+  const phi = (90 - lat) * Math.PI / 180, theta = (lon + 180) * Math.PI / 180;
+  return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta));
+}
+
+fetch('/api/quakes').then(r => r.json()).then(list => {
+  list.forEach(q => {
+    const color = q.tsunami ? 0xff1744 : q.mag >= 6 ? 0xff9100 : 0xffca28;
+    const pin = new THREE.Mesh(new THREE.SphereGeometry(0.012 + q.mag * 0.004, 12, 8), new THREE.MeshBasicMaterial({ color }));
+    pin.position.copy(latLonToVector(q.lat, q.lon, R * 1.01));
+    globe.add(pin);
+  });
+  document.getElementById('gtot').textContent = list.length;
+  document.getElementById('grate').textContent = (list.length / 2.5).toFixed(1);
+}).catch(() => {
+  document.getElementById('timebar').textContent = 'Open this page through the server (http://localhost:8000/globe) to load live quakes.';
+});
+
+// Tick clock every second
+setInterval(() => {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) + ' IST';
+  document.getElementById('clockdate').textContent = now.toLocaleDateString('en', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+}, 1000);
+
+// Refresh quakes every 30s for a live feel
+setInterval(() => {
+  fetch('/api/quakes').then(r => r.json()).then(list => {
+    list.forEach(q => {
+      const color = q.tsunami ? 0xff1744 : q.mag >= 6 ? 0xff9100 : 0xffca28;
+      const pin = new THREE.Mesh(new THREE.SphereGeometry(0.012 + q.mag * 0.004, 12, 8), new THREE.MeshBasicMaterial({ color }));
+      pin.position.copy(latLonToVector(q.lat, q.lon, R * 1.01));
+      globe.add(pin);
+    });
+    document.getElementById('gtot').textContent = list.length;
+    document.getElementById('grate').textContent = (list.length / 2.5).toFixed(1);
+  }).catch(() => {});
+}, 30000);
+
+// Rotate globe slowly
+(function animate() {
+  if (!dragging) globe.rotation.y += 0.002;
+  ren.render(scene, cam);
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
