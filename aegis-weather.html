@@ -288,6 +288,10 @@ body.night .sky{filter:brightness(.4)}
       <div id="adminres" style="font-size:13px;line-height:1.6"></div>
       <button class="btn" id="adminbtn" style="margin-top:6px">Refresh Stats</button>
     </div>
+    <div class="card span2">
+      <h3>City News & History</h3>
+      <div id="newsres" style="font-size:13px;line-height:1.5;max-height:220px;overflow:auto"></div>
+    </div>
   </section>
 </main>
 <div class="toast" id="toast"></div>
@@ -345,6 +349,8 @@ async function searchPlace(){
     $('st').value=city;
     $('st').addEventListener('change',e=>{city=+e.target.value;loadLive()});
     await loadLive();
+    loadHistory();
+    fetchNews(name);
     toast(`Loaded: ${name}`);
   }catch(e){toast('Search failed: '+e.message)}
 }
@@ -657,6 +663,21 @@ setInterval(()=>{
   if(eta>0)eta--;
   const m=String(Math.floor(eta/60)).padStart(2,'0'),sec=String(eta%60).padStart(2,'0');
   $('eta').textContent=eta?m+':'+sec:'IMPACT';
+async function fetchNews(place){
+  const el=$('newsres'); el.textContent='Loading news...';
+  try{
+    const rss=`https://news.google.com/rss/search?q=${encodeURIComponent(place+' weather')}&hl=en-IN&gl=IN&ceid=IN:en`;
+    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(rss)}`;
+    const r=await fetch(proxy);
+    const j=await r.json();
+    const xml=new DOMParser().parseFromString(j.contents,'text/xml');
+    const items=[...xml.querySelectorAll('item')].slice(0,8);
+    if(!items.length){el.textContent='No news found.';return}
+    el.innerHTML=items.map(it=>`<div style="margin-bottom:6px"><a href="${it.querySelector('link').textContent}" target="_blank" style="color:var(--cy)">${it.querySelector('title').textContent}</a><br><span style="color:#7d93b5;font-size:11px">${it.querySelector('pubDate')?it.querySelector('pubDate').textContent:''}</span></div>`).join('');
+  }catch(e){el.textContent='News unavailable: '+e.message;}
+}
+
+
   $('barf').style.width=((1-eta/1320)*100)+'%';
 },1000);
 
