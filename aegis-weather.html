@@ -263,7 +263,33 @@ body.night .sky{filter:brightness(.4)}
       <div id="activity" style="font-size:13px;line-height:1.7"></div>
     </div>
 
-    <div class="card span2" id="favcard">
+    <div class="card span2" id="cyclonecard">
+      <h3>🌀 Cyclone tracker</h3>
+      <canvas id="cyclonecanvas" width="600" height="200" style="width:100%;height:200px"></canvas>
+      <div id="cyclonetxt" style="font-size:13px;line-height:1.6;margin-top:6px"></div>
+    </div>
+
+    <div class="card span2" id="imdcard">
+      <h3>IMD / NDMA alerts (live)</h3>
+      <div id="imdres" style="font-size:13px;line-height:1.6;max-height:220px;overflow:auto">Loading alerts...</div>
+    </div>
+
+    <div class="card span2" id="roadcard">
+      <h3>Road conditions</h3>
+      <div id="roadres" style="font-size:13px;line-height:1.6"></div>
+    </div>
+
+    <div class="card span2" id="digestcard">
+      <h3>Daily digest (email/WhatsApp)</h3>
+      <div class="row" style="gap:6px;margin-bottom:6px">
+        <input id="digestemail" placeholder="Email or phone" style="flex:1;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 10px;font-size:13px">
+        <button class="btn" id="digestbtn">Subscribe</button>
+      </div>
+      <div id="digestres" style="font-size:12px;color:#7d93b5"></div>
+    </div>
+
+
+      <div class="card span2" id="favcard">
       <h3>Saved places</h3>
       <div class="row" style="gap:6px;margin-bottom:6px">
         <input id="favname" placeholder="Nickname (Home, Office...)" style="flex:1;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 10px;font-size:13px">
@@ -965,7 +991,97 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register(swUrl).catch(()=>{});
 }
 
-applyTheme('neon');setScen('clear');loadLive();loadQuakes();setInterval(loadQuakes,120000);connectWS();fetchAIWx();setInterval(()=>fetchAIWx(),120000);
+// ---------- Cyclone tracker ----------
+function drawCyclone(){
+  const c=$('cyclonecanvas'), ctx=c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+  const s=S[cur]; if(!s) return;
+  const wind=s.w, risk=s.risk;
+  const active = wind>60 || s.ic==='storm' || risk>70;
+  if(!active){ $('cyclonetxt').textContent='No active cyclone threat detected for this location.'; return; }
+  // draw cone
+  ctx.strokeStyle='#ff6d00'; ctx.fillStyle='rgba(255,109,0,.15)';
+  ctx.beginPath();
+  ctx.moveTo(c.width/2, 20);
+  ctx.lineTo(c.width/2-60, c.height-20);
+  ctx.lineTo(c.width/2+60, c.height-20);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.font='12px system-ui'; ctx.fillText('Cone of uncertainty', 10, 20);
+  ctx.fillStyle='#ff1744'; ctx.beginPath(); ctx.arc(c.width/2, 20, 6, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.fillText('Center', c.width/2+10, 24);
+  $('cyclonetxt').innerHTML=`⚠️ Cyclone watch: wind ${Math.round(spd(s.w))} km/h, risk ${s.risk}.<br>Follow IMD cyclone bulletins: <a href="https://mausam.imd.gov.in/" target="_blank" style="color:var(--cy)">imd.gov.in</a>`;
+}
+// override render to call drawCyclone
+const _render2=render;
+render=function(){_render2(); drawCyclone(); roadConditions();};
+
+// ---------- IMD / NDMA live alerts ----------
+async function fetchIMDAlerts(){
+  const el=$('imdres'); el.textContent='Loading...';
+  try{
+    const rss='https://alerts.mausam.imd.gov.in/api/cap/rss';
+    // fallback to Google News weather alerts
+    const alt=`https://news.google.com/rss/search?q=IMD+weather+alert+India&hl=en-IN&gl=IN&ceid=IN:en`;
+    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(alt)}`;
+    const r=await fetch(proxy); const j=await r.json();
+    const xml=new DOMParser().parseFromString(j.contents,'text/xml');
+    const items=[...xml.querySelectorAll('item')].slice(0,8);
+    if(!items.length){el.textContent='No alerts found.';return}
+    el.innerHTML=items.map(it=>`<div style="margin-bottom:6px"><a href="${it.querySelector('link').textContent}" target="_blank" style="color:var(--cy)">${it.querySelector('title').textContent}</a><br><span style="color:#7d93b5;font-size:11px">${it.querySelector('pubDate')?it.querySelector('pubDate').textContent:''}</span></div>`).join('');
+  }catch(e){el.textContent='Alerts unavailable: '+e.message;}
+}
+
+// ---------- Road conditions ----------
+function roadConditions(){
+  const s=S[cur]; if(!s) return;
+  const vis=s.vis||10000, t=s.t, rainP=s.precipProb||0, wind=s.w, h=s.h;
+  const items=[];
+  const fog = vis<1000 && h>80;
+  const ice = t<=2;
+  const heavyRain = rainP>=60;
+  const strongWind = wind>=50;
+  if(fog) items.push('🌫️ Dense fog — reduce speed, use fog lights, keep distance.');
+  if(ice) items.push('🧊 Ice risk — black ice possible, drive slowly, avoid sudden braking.');
+  if(heavyRain) items.push('🌧️ Heavy rain expected — hydroplaning risk, avoid waterlogged roads.');
+  if(strongWind) items.push('💨 Strong winds — high-sided vehicles beware, hold steering firmly.');
+  if(!items.length) items.push('✅ Road conditions normal — safe to travel.');
+  $('roadres').innerHTML=items.join('<br>');
+}
+
+// ---------- Daily digest subscribe ----------
+$('digestbtn').onclick=()=>{
+  const v=$('digestemail').value.trim();
+  if(!v){toast('Email/phone likho');return}
+  const subs=JSON.parse(localStorage.getItem('aegis_subs')||'[]');
+  subs.push({contact:v, saved:new Date().toISOString()});
+  localStorage.setItem('aegis_subs',JSON.stringify(subs));
+  $('digestres').textContent=`Subscribed ${v}. Daily digest will be prepared (backend delivery optional).`;
+  // open mailto with current forecast as immediate digest
+  const s=S[cur]; const text=`AEGIS Daily Digest: ${C[city][0]} — ${Math.round(s.t)}°C ${s.n}. Feels ${Math.round(s.feels||s.t)}°. Rain ${s.precipProb||0}%. Risk ${s.risk}.`;
+  const mailto=`mailto:${v.includes('@')?v:''}?subject=AEGIS%20Daily%20Digest&body=${encodeURIComponent(text)}`;
+  window.open(mailto,'_blank');
+  toast('Digest prepared');
+};
+
+// ---------- Auto-detect location on load ----------
+let autoLoc = localStorage.getItem('aegis_autoloc')==='1';
+function maybeAutoLoc(){ if(autoLoc){ useMyLocation(); } }
+const autoBtn=document.createElement('button'); autoBtn.className='btn'; autoBtn.textContent='Auto-loc: '+(autoLoc?'on':'off');
+autoBtn.onclick=()=>{ autoLoc=!autoLoc; localStorage.setItem('aegis_autoloc',autoLoc?'1':'0'); autoBtn.textContent='Auto-loc: '+(autoLoc?'on':'off'); toast(autoLoc?'Auto-detect enabled':'Disabled'); };
+$('locbtn').parentNode.appendChild(autoBtn);
+
+// ---------- PWA install prompt ----------
+let deferredPrompt=null;
+addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); deferredPrompt=e;
+  const ib=document.createElement('button'); ib.className='btn'; ib.textContent='📲 Install app';
+  ib.onclick=async()=>{ if(deferredPrompt){ deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; ib.remove(); } };
+  $('bsh').parentNode.appendChild(ib);
+});
+
+// wire new features on load
+fetchIMDAlerts(); setInterval(fetchIMDAlerts, 600000);
+
+applyTheme('neon');setScen('clear');loadLive();loadQuakes();setInterval(loadQuakes,120000);connectWS();fetchAIWx();setInterval(()=>fetchAIWx(),120000);maybeAutoLoc();
 if('Notification' in window&&Notification.permission==='granted')$('bn').textContent='Alerts on ✓';
 </script>
 </body>
