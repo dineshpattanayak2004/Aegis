@@ -448,6 +448,37 @@ async def analyze_image(body: ImageIn):
         raise HTTPException(500, str(e))
 
 
+@app.get("/api/forecast14")
+async def api_forecast14(lat: float, lon: float):
+    params = {
+        "latitude": lat, "longitude": lon,
+        "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",
+        "timezone": "auto", "forecast_days": 14,
+    }
+    return await cached(f"fc14:{lat:.2f},{lon:.2f}", 1800, lambda: get_json(OPEN_METEO, params))
+
+
+@app.get("/api/history")
+async def api_history(lat: float, lon: float, start: str, end: str):
+    url = "https://archive-api.open-meteo.com/v1/archive"
+    params = {
+        "latitude": lat, "longitude": lon,
+        "start_date": start, "end_date": end,
+        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",
+        "timezone": "auto",
+    }
+    return await get_json(url, params)
+
+
+@app.get("/api/admin/stats")
+async def api_admin():
+    return {
+        "connected_clients": len(clients),
+        "cache_entries": len(cache),
+        "chat_hits_total": sum(len(v) for v in chat_hits.values()),
+        "places_count": len(PLACES),
+        "ai_provider": AI_PROVIDER,
+    }
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
     await ws.accept()

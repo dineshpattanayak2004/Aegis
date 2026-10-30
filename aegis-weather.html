@@ -269,6 +269,25 @@ body.night .sky{filter:brightness(.4)}
       </div>
       <div id="routeres" style="margin-top:8px;font-size:13px;line-height:1.5"></div>
     </div>
+    <div class="card span2">
+      <h3>Rain Radar (Live)</h3>
+      <iframe src="https://www.rainviewer.com/map.html?loc=20,80,5" style="width:100%;height:320px;border:0;border-radius:12px"></iframe>
+    </div>
+
+    <div class="card span2">
+      <h3>14-Day Forecast + History</h3>
+      <div class="row" style="gap:6px;margin-bottom:8px">
+        <button class="btn" id="fc14btn">Load 14-Day Forecast</button>
+        <button class="btn" id="histbtn">Load Last 30 Days History</button>
+      </div>
+      <div id="fc14res" style="font-size:12px;line-height:1.5;max-height:200px;overflow:auto"></div>
+    </div>
+
+    <div class="card span2">
+      <h3>Admin Dashboard</h3>
+      <div id="adminres" style="font-size:13px;line-height:1.6"></div>
+      <button class="btn" id="adminbtn" style="margin-top:6px">Refresh Stats</button>
+    </div>
   </section>
 </main>
 <div class="toast" id="toast"></div>
@@ -644,6 +663,42 @@ setInterval(()=>{
 
 // Real-time IST clock (ticks every second)
 setInterval(()=>{
+$('fc14btn').onclick=loadForecast14;
+$('histbtn').onclick=loadHistory;
+$('adminbtn').onclick=loadAdmin;
+async function loadForecast14(){
+  const c=COORDS[city]; const el=$('fc14res'); el.textContent='Loading...';
+  try{
+    const BE=location.protocol.startsWith('http')?location.origin:null;
+    const r=await fetch((BE?BE:'/')+`/api/forecast14?lat=${c[0]}&lon=${c[1]}`);
+    const j=await r.json();
+    const d=j.daily;
+    el.innerHTML=d.time.map((t,i)=>`${t}: ${Math.round(d.temperature_2m_min[i])}-${Math.round(d.temperature_2m_max[i])}°C, rain ${d.precipitation_sum[i]}mm`).join('<br>');
+  }catch(e){el.textContent='Error: '+e.message;}
+}
+async function loadHistory(){
+  const c=COORDS[city]; const el=$('fc14res'); el.textContent='Loading history...';
+  const end=new Date(); const start=new Date(); start.setDate(end.getDate()-30);
+  const fmt=d=>d.toISOString().slice(0,10);
+  try{
+    const BE=location.protocol.startsWith('http')?location.origin:null;
+    const r=await fetch((BE?BE:'/')+`/api/history?lat=${c[0]}&lon=${c[1]}&start=${fmt(start)}&end=${fmt(end)}`);
+    const j=await r.json();
+    const d=j.daily;
+    el.innerHTML='Last 30 days:<br>'+d.time.map((t,i)=>`${t}: ${Math.round(d.temperature_2m_min[i])}-${Math.round(d.temperature_2m_max[i])}°C, rain ${d.precipitation_sum[i]}mm`).join('<br>');
+  }catch(e){el.textContent='Error: '+e.message;}
+}
+async function loadAdmin(){
+  const BE=location.protocol.startsWith('http')?location.origin:null;
+  const el=$('adminres'); el.textContent='Loading...';
+  try{
+    const r=await fetch((BE?BE:'/')+'/api/admin/stats');
+    const j=await r.json();
+    el.innerHTML=`Connected clients: ${j.connected_clients}<br>Cache entries: ${j.cache_entries}<br>Chat hits: ${j.chat_hits_total}<br>Places: ${j.places_count}<br>AI provider: ${j.ai_provider}`;
+  }catch(e){el.textContent='Error: '+e.message;}
+}
+
+
   const d=new Date();
   $('clock').textContent=d.toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})+' IST';
   $('clockdate').textContent=d.toLocaleDateString('en',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
