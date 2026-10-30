@@ -663,19 +663,6 @@ setInterval(()=>{
   if(eta>0)eta--;
   const m=String(Math.floor(eta/60)).padStart(2,'0'),sec=String(eta%60).padStart(2,'0');
   $('eta').textContent=eta?m+':'+sec:'IMPACT';
-async function fetchNews(place){
-  const el=$('newsres'); el.textContent='Loading news...';
-  try{
-    const rss=`https://news.google.com/rss/search?q=${encodeURIComponent(place+' weather')}&hl=en-IN&gl=IN&ceid=IN:en`;
-    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(rss)}`;
-    const r=await fetch(proxy);
-    const j=await r.json();
-    const xml=new DOMParser().parseFromString(j.contents,'text/xml');
-    const items=[...xml.querySelectorAll('item')].slice(0,8);
-    if(!items.length){el.textContent='No news found.';return}
-    el.innerHTML=items.map(it=>`<div style="margin-bottom:6px"><a href="${it.querySelector('link').textContent}" target="_blank" style="color:var(--cy)">${it.querySelector('title').textContent}</a><br><span style="color:#7d93b5;font-size:11px">${it.querySelector('pubDate')?it.querySelector('pubDate').textContent:''}</span></div>`).join('');
-  }catch(e){el.textContent='News unavailable: '+e.message;}
-}
 
 
   $('barf').style.width=((1-eta/1320)*100)+'%';
@@ -684,40 +671,6 @@ async function fetchNews(place){
 
 // Real-time IST clock (ticks every second)
 setInterval(()=>{
-$('fc14btn').onclick=loadForecast14;
-$('histbtn').onclick=loadHistory;
-$('adminbtn').onclick=loadAdmin;
-async function loadForecast14(){
-  const c=COORDS[city]; const el=$('fc14res'); el.textContent='Loading...';
-  try{
-    const BE=location.protocol.startsWith('http')?location.origin:null;
-    const r=await fetch((BE?BE:'/')+`/api/forecast14?lat=${c[0]}&lon=${c[1]}`);
-    const j=await r.json();
-    const d=j.daily;
-    el.innerHTML=d.time.map((t,i)=>`${t}: ${Math.round(d.temperature_2m_min[i])}-${Math.round(d.temperature_2m_max[i])}°C, rain ${d.precipitation_sum[i]}mm`).join('<br>');
-  }catch(e){el.textContent='Error: '+e.message;}
-}
-async function loadHistory(){
-  const c=COORDS[city]; const el=$('fc14res'); el.textContent='Loading history...';
-  const end=new Date(); const start=new Date(); start.setDate(end.getDate()-30);
-  const fmt=d=>d.toISOString().slice(0,10);
-  try{
-    const BE=location.protocol.startsWith('http')?location.origin:null;
-    const r=await fetch((BE?BE:'/')+`/api/history?lat=${c[0]}&lon=${c[1]}&start=${fmt(start)}&end=${fmt(end)}`);
-    const j=await r.json();
-    const d=j.daily;
-    el.innerHTML='Last 30 days:<br>'+d.time.map((t,i)=>`${t}: ${Math.round(d.temperature_2m_min[i])}-${Math.round(d.temperature_2m_max[i])}°C, rain ${d.precipitation_sum[i]}mm`).join('<br>');
-  }catch(e){el.textContent='Error: '+e.message;}
-}
-async function loadAdmin(){
-  const BE=location.protocol.startsWith('http')?location.origin:null;
-  const el=$('adminres'); el.textContent='Loading...';
-  try{
-    const r=await fetch((BE?BE:'/')+'/api/admin/stats');
-    const j=await r.json();
-    el.innerHTML=`Connected clients: ${j.connected_clients}<br>Cache entries: ${j.cache_entries}<br>Chat hits: ${j.chat_hits_total}<br>Places: ${j.places_count}<br>AI provider: ${j.ai_provider}`;
-  }catch(e){el.textContent='Error: '+e.message;}
-}
 
 
   const d=new Date();
@@ -781,6 +734,55 @@ async function checkRoute(){
   }catch(e){el.textContent='Error: '+e.message;}
 }
 
+
+async function fetchNews(place){
+  const el=$('newsres'); el.textContent='Loading news...';
+  try{
+    const rss=`https://news.google.com/rss/search?q=${encodeURIComponent(place+' weather')}&hl=en-IN&gl=IN&ceid=IN:en`;
+    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(rss)}`;
+    const r=await fetch(proxy);
+    const j=await r.json();
+    const xml=new DOMParser().parseFromString(j.contents,'text/xml');
+    const items=[...xml.querySelectorAll('item')].slice(0,8);
+    if(!items.length){el.textContent='No news found.';return}
+    el.innerHTML=items.map(it=>`<div style="margin-bottom:6px"><a href="${it.querySelector('link').textContent}" target="_blank" style="color:var(--cy)">${it.querySelector('title').textContent}</a><br><span style="color:#7d93b5;font-size:11px">${it.querySelector('pubDate')?it.querySelector('pubDate').textContent:''}</span></div>`).join('');
+  }catch(e){el.textContent='News unavailable: '+e.message;}
+}
+
+$('fc14btn').onclick=loadForecast14;
+$('histbtn').onclick=loadHistory;
+$('adminbtn').onclick=loadAdmin;
+async function loadForecast14(){
+  const c=COORDS[city]; const el=$('fc14res'); el.textContent='Loading...';
+  try{
+    const BE=location.protocol.startsWith('http')?location.origin:null;
+    const r=await fetch((BE?BE:'/')+`/api/forecast14?lat=${c[0]}&lon=${c[1]}`);
+    const j=await r.json();
+    const d=j.daily;
+    el.innerHTML=d.time.map((t,i)=>`${t}: ${Math.round(d.temperature_2m_min[i])}-${Math.round(d.temperature_2m_max[i])}°C, rain ${d.precipitation_sum[i]}mm`).join('<br>');
+  }catch(e){el.textContent='Error: '+e.message;}
+}
+async function loadHistory(){
+  const c=COORDS[city]; const el=$('fc14res'); el.textContent='Loading history...';
+  const end=new Date(); const start=new Date(); start.setDate(end.getDate()-30);
+  const fmt=d=>d.toISOString().slice(0,10);
+  try{
+    const BE=location.protocol.startsWith('http')?location.origin:null;
+    const r=await fetch((BE?BE:'/')+`/api/history?lat=${c[0]}&lon=${c[1]}&start=${fmt(start)}&end=${fmt(end)}`);
+    const j=await r.json();
+    const d=j.daily;
+    el.innerHTML='Last 30 days:<br>'+d.time.map((t,i)=>`${t}: ${Math.round(d.temperature_2m_min[i])}-${Math.round(d.temperature_2m_max[i])}°C, rain ${d.precipitation_sum[i]}mm`).join('<br>');
+  }catch(e){el.textContent='Error: '+e.message;}
+}
+async function loadAdmin(){
+  const BE=location.protocol.startsWith('http')?location.origin:null;
+  const el=$('adminres'); el.textContent='Loading...';
+  try{
+    const r=await fetch((BE?BE:'/')+'/api/admin/stats');
+    const j=await r.json();
+    el.innerHTML=`Connected clients: ${j.connected_clients}<br>Cache entries: ${j.cache_entries}<br>Chat hits: ${j.chat_hits_total}<br>Places: ${j.places_count}<br>AI provider: ${j.ai_provider}`;
+  }catch(e){el.textContent='Error: '+e.message;}
+}
 
 applyTheme('neon');setScen('clear');loadLive();loadQuakes();setInterval(loadQuakes,120000);connectWS();fetchAIWx();setInterval(()=>fetchAIWx(),120000);
 if('Notification' in window&&Notification.permission==='granted')$('bn').textContent='Alerts on ✓';
