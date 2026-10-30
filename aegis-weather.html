@@ -130,10 +130,33 @@ body.night .sky{filter:brightness(.4)}
     </div>
   </div>
   <div class="chips" id="cities"></div>
+  <div class="row" style="margin:6px 0 10px;gap:6px">
+    <input id="placesearch" placeholder="Koi bhi city/village search karo (e.g. Koraput, Puri)" style="flex:1;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 10px;font-size:13px">
+    <button class="btn" id="searchbtn">Search</button>
+    <button class="btn" id="locbtn">📍 My Location</button>
+  </div>
   <div class="chips" id="scen"></div>
   <div class="chips" id="themes"></div>
 
   <section class="grid">
+    <div class="card span2" id="aiwxcard">
+      <h3><span class="lbl">AI Weather Assistant</span> <span id="aiwxs" style="font-size:11px">Live</span></h3>
+      <div id="aiwxd" style="min-height:70px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#cfe3ff;line-height:1.5">
+        <div style="font-size:12px;text-align:center">Getting real-time briefing...</div>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn" id="aiwxtrt" style="flex:none;font-size:11px">Refresh AI</button>
+        <button class="btn" id="aiwxtrn" style="flex:none;font-size:11px">🔊 Speak</button>
+      </div>
+      <div style="margin-top:8px">
+        <div style="display:flex;gap:6px;align-items:center">
+          <input id="aiwxq" placeholder="Ask AI about weather (e.g. is it safe to travel?)" style="flex:1;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 10px;font-size:13px">
+          <button class="btn" id="aiwxask" style="flex:none">Ask AI</button>
+        </div>
+        <div id="aiwxchat" style="max-height:110px;overflow:auto;margin-top:8px;font-size:13px;line-height:1.5;display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+    </div>
+
     <div class="card span2">
       <div class="hero">
         <div style="min-width:0">
@@ -227,13 +250,32 @@ body.night .sky{filter:brightness(.4)}
       <div class="lbl" id="badge" style="margin-bottom:6px"></div>
       <div id="ck"></div>
     </div>
+    <div class="card span2" id="imgcard">
+      <h3>AI Image Analysis (Sky/Weather photo)</h3>
+      <div class="row" style="gap:6px;align-items:center">
+        <input type="file" id="imgfile" accept="image/*">
+        <button class="btn" id="imgbtn">Analyze Image</button>
+      </div>
+      <img id="imgprev" style="max-width:100%;max-height:200px;margin-top:8px;border-radius:12px;display:none">
+      <div id="imgres" style="margin-top:8px;font-size:13px;line-height:1.5"></div>
+    </div>
+
+    <div class="card span2" id="routecard">
+      <h3>Route Safety (Travel weather)</h3>
+      <div class="row" style="gap:6px">
+        <input id="fromplace" placeholder="From (city)" style="flex:1;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 10px;font-size:13px">
+        <input id="toplace" placeholder="To (city)" style="flex:1;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 10px;font-size:13px">
+        <button class="btn" id="routebtn">Check Route</button>
+      </div>
+      <div id="routeres" style="margin-top:8px;font-size:13px;line-height:1.5"></div>
+    </div>
   </section>
 </main>
 <div class="toast" id="toast"></div>
 
 <script>
 const $=id=>document.getElementById(id);
-const C=[['Andhra Pradesh',3],['Arunachal Pradesh',-4],['Assam',2],['Bihar',3],['Chhattisgarh',3],['Goa',2],['Gujarat',3],['Haryana',2],['Himachal Pradesh',-6],['Jharkhand',2],['Karnataka',0],['Kerala',1],['Madhya Pradesh',2],['Maharashtra',2],['Manipur',0],['Meghalaya',-1],['Mizoram',-1],['Nagaland',0],['Odisha',2],['Punjab',0],['Rajasthan',5],['Sikkim',-4],['Tamil Nadu',2],['Telangana',2],['Tripura',1],['Uttar Pradesh',2],['Uttarakhand',-3],['West Bengal',1],['Andaman and Nicobar Islands',1],['Chandigarh',1],['Dadra and Nagar Haveli and Daman and Diu',3],['Delhi',2],['Jammu and Kashmir',-4],['Ladakh',-10],['Lakshadweep',1],['Puducherry',2]];
+const C=[['Andhra Pradesh',3],['Arunachal Pradesh',-4],['Assam',2],['Bihar',3],['Chhattisgarh',3],['Goa',2],['Gujarat',3],['Haryana',2],['Himachal Pradesh',-6],['Jharkhand',2],['Karnataka',0],['Kerala',1],['Madhya Pradesh',2],['Maharashtra',2],['Manipur',0],['Meghalaya',-1],['Mizoram',-1],['Nagaland',0],['Angul',2],['Balangir',2],['Balasore',2],['Bargarh',2],['Bhadrak',2],['Boudh',2],['Cuttack',2],['Deogarh',2],['Dhenkanal',2],['Gajapati',2],['Ganjam',2],['Jagatsinghpur',2],['Jajpur',2],['Jharsuguda',2],['Kalahandi',2],['Kandhamal',2],['Kendrapara',2],['Keonjhar',2],['Khordha',2],['Koraput',2],['Malkangiri',2],['Mayurbhanj',2],['Nabarangpur',2],['Nayagarh',2],['Nuapada',2],['Puri',2],['Rayagada',2],['Sambalpur',2],['Subarnapur',2],['Sundargarh',2],['Punjab',0],['Rajasthan',5],['Sikkim',-4],['Tamil Nadu',2],['Telangana',2],['Tripura',1],['Uttar Pradesh',2],['Uttarakhand',-3],['West Bengal',1],['Andaman and Nicobar Islands',1],['Chandigarh',1],['Dadra and Nagar Haveli and Daman and Diu',3],['Delhi',2],['Jammu and Kashmir',-4],['Ladakh',-10],['Lakshadweep',1],['Puducherry',2]];
 const TH={neon:['Neon Cyber','#00e5ff','#050914'],aurora:['Aurora','#3dffa0','#03110d'],vapor:['Vaporwave','#ff71ce','#14062a'],tiranga:['Tiranga','#ff9933','#0b1410'],desert:['Thar Desert','#ffb300','#1a0f05'],himalaya:['Himalayan Ice','#9be7ff','#0a1622'],monsoon:['Monsoon','#4fd1c5','#06161c']};
 let ACC='#00e5ff';
 const L={clear:'Clear',storm:'Storm',cyclone:'Cyclone',flood:'Flood',heat:'Heat',snow:'Blizzard',quake:'Quake · Tsunami'};
@@ -252,6 +294,41 @@ let cur='clear',city=0,soundOn=false,AC=null,eta=1320,blips=[],flash=0,parts=[],
 const rd=$('rad'),rc=rd.getContext('2d'),sm=$('seis'),sc=sm.getContext('2d'),fx=$('fx'),fc=fx.getContext('2d'),buf=Array(160).fill(0);
 
 $('cities').innerHTML=`<select class="sel" id="st" aria-label="State or union territory">${C.map(([n],i)=>`<option value="${i}">${n}</option>`).join('')}</select>`;
+$('searchbtn').onclick=searchPlace;
+$('placesearch').addEventListener('keydown',e=>{if(e.key==='Enter')searchPlace();});
+$('locbtn').onclick=useMyLocation;
+async function useMyLocation(){
+  if(!navigator.geolocation){toast('Geolocation not supported');return}
+  toast('Location detect ho raha hai...');
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const lat=pos.coords.latitude, lon=pos.coords.longitude;
+    C.push(['My Location',2]); COORDS.push([lat,lon]);
+    city=C.length-1;
+    $('cities').innerHTML=`<select class="sel" id="st" aria-label="State or union territory">${C.map(([n],i)=>`<option value="${i}">${n}</option>`).join('')}</select>`;
+    $('st').value=city;
+    $('st').addEventListener('change',e=>{city=+e.target.value;loadLive()});
+    await loadLive();
+    toast('Aapki location ka weather load hua');
+  }, err=>toast('Location error: '+err.message));
+}
+async function searchPlace(){
+  const q=$('placesearch').value.trim();
+  if(!q){toast('City/village name likho');return}
+  try{
+    const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=en&format=json`);
+    const j=await r.json();
+    if(!j.results||!j.results.length){toast('Place nahi mila');return}
+    const p=j.results[0];
+    const name=p.name+(p.admin1?`, ${p.admin1}`:'')+(p.country?`, ${p.country}`:'');
+    C.push([name,2]); COORDS.push([p.latitude,p.longitude]);
+    city=C.length-1;
+    $('cities').innerHTML=`<select class="sel" id="st" aria-label="State or union territory">${C.map(([n],i)=>`<option value="${i}">${n}</option>`).join('')}</select>`;
+    $('st').value=city;
+    $('st').addEventListener('change',e=>{city=+e.target.value;loadLive()});
+    await loadLive();
+    toast(`Loaded: ${name}`);
+  }catch(e){toast('Search failed: '+e.message)}
+}
 $('scen').innerHTML=Object.keys(L).map(k=>`<button class="chip" data-k="${k}">${L[k]}</button>`).join('');
 $('themes').innerHTML=Object.keys(TH).map(k=>`<button class="chip" data-th="${k}">${TH[k][0]}</button>`).join('');
 $('ck').innerHTML=CK.map((c,i)=>`<label class="ck"><input type="checkbox" data-i="${i}">${c}</label>`).join('');
@@ -265,7 +342,7 @@ function applyTheme(k){
   document.body.classList.toggle('cyber',k==='neon');
   document.querySelectorAll('[data-th]').forEach(el=>el.classList.toggle('on',el.dataset.th===k));
 }
-const COORDS=[[16.5,80.5],[27.1,93.6],[26.1,91.8],[25.6,85.1],[21.25,81.6],[15.5,73.8],[23.2,72.6],[30.7,76.8],[31.1,77.2],[23.3,85.3],[13.0,77.6],[8.5,76.9],[23.3,77.4],[19.1,72.9],[24.8,93.9],[25.6,91.9],[23.7,92.7],[25.7,94.1],[20.3,85.8],[30.7,76.8],[26.9,75.8],[27.3,88.6],[13.1,80.3],[17.4,78.5],[23.8,91.3],[26.9,80.9],[30.3,78.0],[22.6,88.4],[11.6,92.7],[30.7,76.8],[20.3,73.0],[28.6,77.2],[34.1,74.8],[34.2,77.6],[10.6,72.6],[11.9,79.8]];
+const COORDS=[[16.5,80.5],[27.1,93.6],[26.1,91.8],[25.6,85.1],[21.25,81.6],[15.5,73.8],[23.2,72.6],[30.7,76.8],[31.1,77.2],[23.3,85.3],[13.0,77.6],[8.5,76.9],[23.3,77.4],[19.1,72.9],[24.8,93.9],[25.6,91.9],[23.7,92.7],[25.7,94.1],[20.84,85.10],[20.71,83.49],[21.49,86.93],[21.33,83.62],[21.06,86.50],[20.84,84.32],[20.46,85.88],[21.54,84.73],[20.65,85.60],[19.16,84.18],[19.38,84.97],[20.25,86.17],[20.85,86.34],[21.85,84.01],[19.91,83.17],[20.14,84.05],[20.50,86.42],[21.63,85.58],[20.18,85.62],[18.81,82.71],[18.35,81.89],[21.93,86.73],[19.24,82.55],[20.13,85.10],[20.82,82.55],[19.81,85.83],[19.17,83.42],[21.47,83.97],[20.84,83.92],[22.12,84.02],[30.7,76.8],[26.9,75.8],[27.3,88.6],[13.1,80.3],[17.4,78.5],[23.8,91.3],[26.9,80.9],[30.3,78.0],[22.6,88.4],[11.6,92.7],[30.7,76.8],[20.3,73.0],[28.6,77.2],[34.1,74.8],[34.2,77.6],[10.6,72.6],[11.9,79.8]];
 const WX=c=>c>=95?'storm':(c>=71&&c<=86)?'snow':c>=51?'rain':c>=2?'cloud':'sun';
 const WT=c=>c>=95?'Thunderstorm':c>=85?'Snow showers':c>=71?'Snowfall':c>=80?'Rain showers':c>=51?'Rain':c>=45?'Fog':c>=2?'Partly cloudy':'Clear sky';
 const SKY={sun:S.clear.sky,cloud:'linear-gradient(170deg,#1b2735,#4b6584 60%,#a9b9cc)',rain:S.flood.sky,storm:S.storm.sky,snow:S.snow.sky};
@@ -303,6 +380,88 @@ let QUAKES=[];
 let chatLog=[];
 const BE=location.protocol.startsWith('http')?location.origin:null;
 function sendChat(){if($('akey').value.trim()||!BE)ask();else askServer()}
+function speak(t){
+  if('speechSynthesis' in window){const u=new SpeechSynthesisUtterance(t);u.lang='en-IN';u.rate=.95;speechSynthesis.cancel();speechSynthesis.speak(u)}
+}
+
+async function fetchAIWx(){
+  const c=S.live||S[cur],cn=C[city]?C[city][0]:'Unknown';
+  const now=new Date();
+  const ctx={
+    location:cn,
+    date:now.toLocaleString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}),
+    time:now.toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false}),
+    temperature_c:Math.round(c.t||c.temperature_c||0),
+    condition:c.n||c.condition||'Unknown',
+    humidity_pct:Math.round(c.h||0),
+    wind_kmh:Math.round(c.w||0),
+    pressure_hpa:Math.round(c.p||0),
+    uv:Math.round(c.uv||0),
+    risk_index:Math.round(c.risk||0),
+    active_alert:c.a?{level:c.a[0],title:c.a[1],detail:c.a[2]}:null,
+    tsunami_flag:REALT?{mag:REALT.mag,place:REALT.place}:null,
+    source:cur==='live'?'live data':'demo data',
+  };
+  const el=$('aiwxd');
+  $('aiwxs').textContent='Thinking…';
+  try{
+    const r=await fetch((BE?BE:'/')+'/api/wxassist',{
+      method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({question:'Give me a 2-3 sentence real-time weather summary and 1 actionable tip.',context:ctx})
+    });
+    const j=await r.json();
+    if(!r.ok)throw new Error(j.detail||'server error');
+    el.innerHTML=`<div style="font-size:13px;line-height:1.6">${escapeHtml(j.reply)}</div>`;
+    $('aiwxs').textContent='OK';
+  }catch(e){
+    el.innerHTML=`<div style="font-size:13px;line-height:1.6">⚠️ ${escapeHtml(e.message)}<br><span style="color:#7d93b5">Live AI offline. Showing local conditions.</span></div>`;
+    $('aiwxs').textContent='offline';
+  }
+}
+
+function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+
+function addAWMsg(role,text){
+  const d=document.createElement('div');
+  d.style.cssText=`align-self:${role==='user'?'flex-end':'flex-start'};background:${role==='user'?'rgba(0,229,255,.18)':'rgba(255,255,255,.05)'};border:1px solid var(--line);padding:6px 10px;border-radius:12px;max-width:90%;white-space:pre-wrap;font-size:13px`;
+  d.textContent=text;$('aiwxchat').appendChild(d);$('aiwxchat').scrollTop=1e9;return d;
+}
+
+async function askAI(){
+  const q=$('aiwxq').value.trim();if(!q)return;
+  $('aiwxq').value='';addAWMsg('user',q);
+  const pending=addAWMsg('ai','Thinking…');
+  try{
+    const ctx={location:C[city]?C[city][0]:'Unknown',
+      temperature_c:Math.round((S.live||S[cur]).t||0),
+      condition:(S.live||S[cur]).n||'Unknown',
+      humidity_pct:Math.round((S.live||S[cur]).h||0),
+      wind_kmh:Math.round((S.live||S[cur]).w||0),
+      pressure_hpa:Math.round((S.live||S[cur]).p||0),
+      uv:Math.round((S.live||S[cur]).uv||0),
+      risk_index:Math.round((S.live||S[cur]).risk||0),
+      active_alert:(S.live||S[cur]).a?{level:(S.live||S[cur]).a[0],title:(S.live||S[cur]).a[1],detail:(S.live||S[cur]).a[2]}:null,
+      source:cur==='live'?'live data':'demo data'};
+    const r=await fetch((BE?BE:'/')+'/api/wxassist',{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({question:q,context:ctx})});
+    const j=await r.json();
+    if(!r.ok)throw new Error(j.detail||'server error');
+    pending.textContent=j.reply;
+  }catch(e){pending.textContent='⚠️ '+e.message;}
+}
+
+async function speakAI(){
+  const c=S.live||S[cur];
+  const txt=`AI briefing: ${c.n || 'current conditions'}, about ${Math.round(c.t||0)} degrees Celsius.`+(c.a?` ${c.a[2]}`:` No active alerts.`);
+  speak(txt);
+}
+
+document.getElementById('aiwxtrt').addEventListener('click',fetchAIWx);
+document.getElementById('aiwxask').addEventListener('click',askAI);
+document.getElementById('aiwxq').addEventListener('keydown',e=>{if(e.key==='Enter')askAI();});
+document.getElementById('aiwxtrn').addEventListener('click',speakAI);
+
+
 async function askServer(){
   const q=$('q').value.trim();
   if(!q)return;
@@ -504,7 +663,50 @@ async function updateTimingAnalytics(){
   setTimeout(updateTimingAnalytics,30000);
 }
 updateTimingAnalytics();
-applyTheme('neon');setScen('clear');loadLive();loadQuakes();setInterval(loadQuakes,120000);connectWS();
+$('imgbtn').onclick=analyzeImage;
+$('routebtn').onclick=checkRoute;
+let imgBase64=null, imgMime='image/jpeg';
+$('imgfile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  imgMime=f.type||'image/jpeg';
+  const rd=new FileReader();
+  rd.onload=ev=>{imgBase64=ev.target.result.split(',')[1]; const p=$('imgprev'); p.src=ev.target.result; p.style.display='block';};
+  rd.readAsDataURL(f);
+});
+async function analyzeImage(){
+  if(!imgBase64){toast('Pehle image select karo');return}
+  const el=$('imgres'); el.textContent='Analyzing...';
+  try{
+    const BE=location.protocol.startsWith('http')?location.origin:null;
+    const r=await fetch((BE?BE:'/')+'/api/analyze-image',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({image:imgBase64,mime_type:imgMime,question:'Analyze this sky/weather photo. Identify clouds, rain possibility, storm signs, and give safety advice in Hindi+English.'})});
+    const j=await r.json();
+    if(!r.ok) throw new Error(j.detail||'server error');
+    el.innerHTML=`<div>${escapeHtml(j.reply)}</div>`;
+  }catch(e){el.textContent='Error: '+e.message;}
+}
+async function geocodePlace(name){
+  const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=en&format=json`);
+  const j=await r.json();
+  if(!j.results||!j.results.length) throw new Error(name+' nahi mila');
+  return j.results[0];
+}
+async function checkRoute(){
+  const from=$('fromplace').value.trim(), to=$('toplace').value.trim();
+  if(!from||!to){toast('From aur To dono likho');return}
+  const el=$('routeres'); el.textContent='Checking...';
+  try{
+    const a=await geocodePlace(from), b=await geocodePlace(to);
+    const fetchW=async (lat,lon)=> (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m&timezone=auto`)).json();
+    const [wa,wb]=await Promise.all([fetchW(a.latitude,a.longitude),fetchW(b.latitude,b.longitude)]);
+    const ca=wa.current, cb=wb.current;
+    el.innerHTML=`<b>${a.name}</b>: ${Math.round(ca.temperature_2m)}°C, ${WT(ca.weather_code)}, wind ${Math.round(ca.wind_speed_10m)} km/h<br>`+
+      `<b>${b.name}</b>: ${Math.round(cb.temperature_2m)}°C, ${WT(cb.weather_code)}, wind ${Math.round(cb.wind_speed_10m)} km/h<br>`+
+      `<span style="color:#7d93b5">Travel advice: ${ca.weather_code>=95||cb.weather_code>=95?'Thunderstorm risk - avoid travel.':ca.wind_speed_10m>50||cb.wind_speed_10m>50?'Strong winds - drive carefully.':'Conditions okay for travel.'}</span>`;
+  }catch(e){el.textContent='Error: '+e.message;}
+}
+
+
+applyTheme('neon');setScen('clear');loadLive();loadQuakes();setInterval(loadQuakes,120000);connectWS();fetchAIWx();setInterval(()=>fetchAIWx(),120000);
 if('Notification' in window&&Notification.permission==='granted')$('bn').textContent='Alerts on ✓';
 </script>
 </body>
