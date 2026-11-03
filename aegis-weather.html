@@ -7,8 +7,18 @@
 <title>AEGIS · Weather & Calamity Watch</title>
 <style>
 :root{--bg:#050914;--card:rgba(12,20,38,.72);--line:rgba(0,229,255,.18);--cy:#00e5ff;--rd:#ff3b5c;--tx:#e6f1ff;--mu:#7d93b5}
-body.light{--bg:#eef4fb;--card:rgba(255,255,255,.85);--line:rgba(0,120,180,.25);--cy:#0277bd;--rd:#d32f2f;--tx:#0b1a2b;--mu:#5a6b85;background:var(--bg);color:var(--tx)}
+body.light{--bg:#eef4fb;--card:rgba(255,255,255,.92);--line:rgba(0,120,180,.25);--cy:#0277bd;--rd:#d32f2f;--tx:#0b1a2b;--mu:#5a6b85;background:var(--bg);color:var(--tx)}
+body.light .sky{opacity:0}
+body.light .sel, body.light input, body.light .btn{background:rgba(255,255,255,.9);color:var(--tx);border-color:var(--line)}
 body.light .sel option{background:#fff;color:#0b1a2b}
+body.light .chip{background:rgba(0,0,0,.06);color:var(--tx)}
+body.light .chip.on{background:var(--cy);color:#fff}
+body.light .card{background:var(--card);border-color:var(--line);color:var(--tx)}
+body.light #aiwxd, body.light #brief, body.light #chat{color:var(--tx)}
+body.light .lbl{color:var(--mu)}
+body.light h3{color:var(--cy)}
+body.light .temp{color:var(--tx)}
+body.light input::placeholder{color:#8a9bb5}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%}
 body{background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow-x:hidden;padding:0 12px env(safe-area-inset-bottom)}
