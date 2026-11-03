@@ -3,6 +3,7 @@ import json
 import os
 import time
 from contextlib import asynccontextmanager
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -468,6 +469,48 @@ async def api_history(lat: float, lon: float, start: str, end: str):
         "timezone": "auto",
     }
     return await get_json(url, params)
+
+
+@app.get("/api/cyclones")
+async def api_cyclones():
+    url = "https://www.gdacs.org/xml/rss.xml"
+    try:
+        r = await http.get(url)
+        r.raise_for_status()
+        root = ET.fromstring(r.content)
+        out = []
+        for it in root.findall(".//item"):
+            title = it.findtext("title") or ""
+            if not ("cyclone" in title.lower() or "tropical" in title.lower() or "typhoon" in title.lower() or "hurricane" in title.lower()):
+                continue
+            out.append({
+                "title": title,
+                "description": (it.findtext("description") or "").strip(),
+                "link": it.findtext("link") or "",
+                "pubDate": it.findtext("pubDate") or "",
+            })
+        return {"items": out[:15]}
+    except Exception as e:
+        raise HTTPException(502, str(e))
+
+
+@app.get("/api/imd-alerts")
+async def api_imd_alerts():
+    url = "https://news.google.com/rss/search?q=IMD+weather+alert+India&hl=en-IN&gl=IN&ceid=IN:en"
+    try:
+        r = await http.get(url)
+        r.raise_for_status()
+        root = ET.fromstring(r.content)
+        out = []
+        for it in root.findall(".//item")[:12]:
+            out.append({
+                "title": it.findtext("title") or "",
+                "link": it.findtext("link") or "",
+                "pubDate": it.findtext("pubDate") or "",
+            })
+        return {"items": out}
+    except Exception as e:
+        raise HTTPException(502, str(e))
 
 
 @app.get("/api/admin/stats")

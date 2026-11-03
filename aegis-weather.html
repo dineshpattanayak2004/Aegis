@@ -327,6 +327,7 @@ body.night .sky{filter:brightness(.4)}
       <div class="row" style="gap:6px">
         <input id="fromplace" placeholder="From (city)" style="flex:1;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 10px;font-size:13px">
         <input id="toplace" placeholder="To (city)" style="flex:1;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 10px;font-size:13px">
+        <input id="routedate" type="date" style="background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 10px;font-size:13px">
         <button class="btn" id="routebtn">Check Route</button>
       </div>
       <div id="routeres" style="margin-top:8px;font-size:13px;line-height:1.5"></div>
@@ -801,14 +802,26 @@ async function checkRoute(){
   const from=$('fromplace').value.trim(), to=$('toplace').value.trim();
   if(!from||!to){toast('From aur To dono likho');return}
   const el=$('routeres'); el.textContent='Checking...';
+  const dateStr=$('routedate').value;
   try{
     const a=await geocodePlace(from), b=await geocodePlace(to);
-    const fetchW=async (lat,lon)=> (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m&timezone=auto`)).json();
+    const fetchW=async (lat,lon)=> {
+      const u=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max&timezone=auto&forecast_days=14`;
+      return (await fetch(u)).json();
+    };
     const [wa,wb]=await Promise.all([fetchW(a.latitude,a.longitude),fetchW(b.latitude,b.longitude)]);
-    const ca=wa.current, cb=wb.current;
-    el.innerHTML=`<b>${a.name}</b>: ${Math.round(ca.temperature_2m)}°C, ${WT(ca.weather_code)}, wind ${Math.round(ca.wind_speed_10m)} km/h<br>`+
-      `<b>${b.name}</b>: ${Math.round(cb.temperature_2m)}°C, ${WT(cb.weather_code)}, wind ${Math.round(cb.wind_speed_10m)} km/h<br>`+
-      `<span style="color:#7d93b5">Travel advice: ${ca.weather_code>=95||cb.weather_code>=95?'Thunderstorm risk - avoid travel.':ca.wind_speed_10m>50||cb.wind_speed_10m>50?'Strong winds - drive carefully.':'Conditions okay for travel.'}</span>`;
+    const da=wa.daily, db=wb.daily;
+    let idx=0;
+    if(dateStr){
+      const i=da.time.indexOf(dateStr);
+      if(i>=0) idx=i;
+    }
+    const ca={code:da.weather_code[idx], hi:da.temperature_2m_max[idx], lo:da.temperature_2m_min[idx], rain:da.precipitation_sum[idx], rainP:da.precipitation_probability_max[idx], wind:da.wind_speed_10m_max[idx]};
+    const cb={code:db.weather_code[idx], hi:db.temperature_2m_max[idx], lo:db.temperature_2m_min[idx], rain:db.precipitation_sum[idx], rainP:db.precipitation_probability_max[idx], wind:db.wind_speed_10m_max[idx]};
+    const dayLabel=dateStr?dateStr:'today';
+    el.innerHTML=`<b>${a.name}</b> (${dayLabel}): ${Math.round(ca.lo)}-${Math.round(ca.hi)}°C, ${WT(ca.code)}, rain ${ca.rain}mm (${ca.rainP}%), wind ${Math.round(ca.wind)} km/h<br>`+
+      `<b>${b.name}</b> (${dayLabel}): ${Math.round(cb.lo)}-${Math.round(cb.hi)}°C, ${WT(cb.code)}, rain ${cb.rain}mm (${cb.rainP}%), wind ${Math.round(cb.wind)} km/h<br>`+
+      `<span style="color:#7d93b5">Travel advice: ${ca.code>=95||cb.code>=95?'Thunderstorm risk - avoid travel.':ca.wind>50||cb.wind>50?'Strong winds - drive carefully.':ca.rainP>=60||cb.rainP>=60?'Heavy rain likely - carry rain gear.':'Conditions okay for travel.'}</span>`;
   }catch(e){el.textContent='Error: '+e.message;}
 }
 
@@ -992,25 +1005,18 @@ if('serviceWorker' in navigator){
 }
 
 // ---------- Cyclone tracker ----------
-function drawCyclone(){
-  const c=$('cyclonecanvas'), ctx=c.getContext('2d');
-  ctx.clearRect(0,0,c.width,c.height);
-  const s=S[cur]; if(!s) return;
-  const wind=s.w, risk=s.risk;
-  const active = wind>60 || s.ic==='storm' || risk>70;
-  if(!active){ $('cyclonetxt').textContent='No active cyclone threat detected for this location.'; return; }
-  // draw cone
-  ctx.strokeStyle='#ff6d00'; ctx.fillStyle='rgba(255,109,0,.15)';
-  ctx.beginPath();
-  ctx.moveTo(c.width/2, 20);
-  ctx.lineTo(c.width/2-60, c.height-20);
-  ctx.lineTo(c.width/2+60, c.height-20);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.fillStyle='#fff'; ctx.font='12px system-ui'; ctx.fillText('Cone of uncertainty', 10, 20);
-  ctx.fillStyle='#ff1744'; ctx.beginPath(); ctx.arc(c.width/2, 20, 6, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle='#fff'; ctx.fillText('Center', c.width/2+10, 24);
-  $('cyclonetxt').innerHTML=`⚠️ Cyclone watch: wind ${Math.round(spd(s.w))} km/h, risk ${s.risk}.<br>Follow IMD cyclone bulletins: <a href="https://mausam.imd.gov.in/" target="_blank" style="color:var(--cy)">imd.gov.in</a>`;
+async function fetchCyclones(){
+  const el=$('cyclonetxt'); el.textContent='Loading cyclone data...';
+  try{
+    const BE=location.protocol.startsWith('http')?location.origin:null;
+    const r=await fetch((BE?BE:'/')+'/api/cyclones');
+    const j=await r.json();
+    const items=j.items||[];
+    if(!items.length){el.textContent='No active cyclone threats reported.';return}
+    el.innerHTML=items.map(it=>`<div style="margin-bottom:8px"><b>${it.title}</b><br><span style="color:#7d93b5;font-size:11px">${it.pubDate||''}</span><br>${it.description?it.description.slice(0,220)+'...':''} ${it.link?`<a href="${it.link}" target="_blank" style="color:var(--cy)">details</a>`:''}</div>`).join('');
+  }catch(e){el.textContent='Cyclone data unavailable: '+e.message;}
 }
+function drawCyclone(){ fetchCyclones(); }
 // override render to call drawCyclone
 const _render2=render;
 render=function(){_render2(); drawCyclone(); roadConditions();};
@@ -1019,15 +1025,12 @@ render=function(){_render2(); drawCyclone(); roadConditions();};
 async function fetchIMDAlerts(){
   const el=$('imdres'); el.textContent='Loading...';
   try{
-    const rss='https://alerts.mausam.imd.gov.in/api/cap/rss';
-    // fallback to Google News weather alerts
-    const alt=`https://news.google.com/rss/search?q=IMD+weather+alert+India&hl=en-IN&gl=IN&ceid=IN:en`;
-    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(alt)}`;
-    const r=await fetch(proxy); const j=await r.json();
-    const xml=new DOMParser().parseFromString(j.contents,'text/xml');
-    const items=[...xml.querySelectorAll('item')].slice(0,8);
+    const BE=location.protocol.startsWith('http')?location.origin:null;
+    const r=await fetch((BE?BE:'/')+'/api/imd-alerts');
+    const j=await r.json();
+    const items=j.items||[];
     if(!items.length){el.textContent='No alerts found.';return}
-    el.innerHTML=items.map(it=>`<div style="margin-bottom:6px"><a href="${it.querySelector('link').textContent}" target="_blank" style="color:var(--cy)">${it.querySelector('title').textContent}</a><br><span style="color:#7d93b5;font-size:11px">${it.querySelector('pubDate')?it.querySelector('pubDate').textContent:''}</span></div>`).join('');
+    el.innerHTML=items.map(it=>`<div style="margin-bottom:6px"><a href="${it.link}" target="_blank" style="color:var(--cy)">${it.title}</a><br><span style="color:#7d93b5;font-size:11px">${it.pubDate||''}</span></div>`).join('');
   }catch(e){el.textContent='Alerts unavailable: '+e.message;}
 }
 
