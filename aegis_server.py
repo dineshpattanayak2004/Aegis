@@ -3,6 +3,7 @@ import json
 import os
 import time
 from contextlib import asynccontextmanager
+import re
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -473,22 +474,40 @@ async def api_history(lat: float, lon: float, start: str, end: str):
 
 @app.get("/api/cyclones")
 async def api_cyclones():
-    url = "https://www.gdacs.org/xml/rss.xml"
+    url = "https://www.gdacs.org/contentdata/xml/rss.xml"
     try:
         r = await http.get(url)
         r.raise_for_status()
-        root = ET.fromstring(r.content)
+        text = (await r.aread()).decode("utf-8", errors="replace")
+        text = re.sub(r"&(?!(?:amp|lt|gt|quot|apos|#x[0-9a-fA-F]+|#[0-9]+);)", "&amp;", text)
+        root = ET.fromstring(text)
         out = []
         for it in root.findall(".//item"):
-            title = it.findtext("title") or ""
-            if not ("cyclone" in title.lower() or "tropical" in title.lower() or "typhoon" in title.lower() or "hurricane" in title.lower()):
+            etype = it.findtext(
+                "gdacs:eventtype", namespaces={"gdacs": "http://www.gdacs.org"}
+            ) or ""
+            if not etype.upper().startswith("CY"):
                 continue
-            out.append({
-                "title": title,
-                "description": (it.findtext("description") or "").strip(),
-                "link": it.findtext("link") or "",
-                "pubDate": it.findtext("pubDate") or "",
-            })
+            title = it.findtext("title") or ""
+            description = it.findtext("description") or ""
+            link = it.findtext("link") or ""
+            pub_date = it.findtext("pubDate") or ""
+            lat = it.findtext(
+                "geo:lat", namespaces={"geo": "http://www.w3.org/2003/01/geo/wgs84_pos#"}
+            )
+            lon = it.findtext(
+                "geo:long", namespaces={"geo": "http://www.w3.org/2003/01/geo/wgs84_pos#"}
+            )
+            out.append(
+                {
+                    "title": title,
+                    "description": description.strip(),
+                    "link": link,
+                    "pubDate": pub_date,
+                    "lat": lat,
+                    "lon": lon,
+                }
+            )
         return {"items": out[:15]}
     except Exception as e:
         raise HTTPException(502, str(e))

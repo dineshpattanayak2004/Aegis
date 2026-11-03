@@ -210,27 +210,27 @@ def rule_based_response(context: dict, question: str) -> str:
 
     # Temperature based advice
     if temp >= 40:
-        lines.append(f"🌡️ {loc} mein aaj {temp}°C se zyada, bojh lene wali garmi hai. Zyaada paani piyein, noon tak bahar mat jaiye.")
+        lines.append(f"🌡️ {loc} today is {temp}°C — very hot. Drink plenty of water and avoid going out at noon.")
     elif temp >= 35:
-        lines.append(f"☀️ {loc} mein {temp}°C hai — thodi garam, paani aur thanda khaana lo.")
+        lines.append(f"☀️ {loc} is {temp}°C — a bit hot, drink water and eat cool food.")
     elif temp >= 25:
-        lines.append(f"🌤️ {loc} mein {temp}°C, aaram bhari sukoon wali mahol hai.")
+        lines.append(f"🌤️ {loc} is {temp}°C — pleasant and comfortable weather.")
     else:
-        lines.append(f"❄️ {loc} mein {temp}°C hai — thandi lagi hai, lambi kapde peheniye.")
+        lines.append(f"❄️ {loc} is {temp}°C — it feels cold, wear warm clothes.")
 
     # Condition based advice
     if "rain" in cond or "storm" in cond:
-        lines.append("🌧️ Barf/Toofan ke waqt zaroor zaroorit raahon par jaayein, underpass aur road ki taraf se door rahein.")
+        lines.append("🌧️ During rain/storm, take necessary precautions, avoid underpasses and low-lying roads.")
     elif "cloudy" in cond or "overcast" in cond:
-        lines.append("☁️ Baarish shayad aayegi, umbrella lein.")
+        lines.append("☁️ Rain may come, carry an umbrella.")
     elif "clear" in cond or "sunny" in cond:
-        lines.append("☀️ Clear sky — roz subah 30-minute walk karne ka sahi samay hai.")
+        lines.append("☀️ Clear sky — a good time for a 30-minute morning walk.")
 
     # Risk based advice
     if risk >= 70:
-        lines.append("⚠️ Calamity risk high hai — safed zone mein rahein, family ko contact rakhein.")
+        lines.append("⚠️ Calamity risk is high — stay in a safe zone and keep in touch with family.")
     elif risk >= 40:
-        lines.append("📋 Calamity risk moderate hai — kuch precautions lena na bhoolen.")
+        lines.append("📋 Calamity risk is moderate — don't forget some precautions.")
 
     # Alert (real-time warning)
     if alert:
@@ -238,7 +238,7 @@ def rule_based_response(context: dict, question: str) -> str:
         title = alert.get("title", "")
         detail = alert.get("detail", "")
         if lvl in ("emerg", "emergency"):
-            lines.insert(0, f"🚨 EMERGENCY: {title} — {detail}. ABHI baat karne se kam, bachne ke liye karein.")
+            lines.insert(0, f"🚨 EMERGENCY: {title} — {detail}. Act now to stay safe.")
         elif lvl == "warn":
             lines.insert(0, f"⚠️ Warning: {title} — {detail}")
         elif lvl == "adv":
@@ -247,20 +247,20 @@ def rule_based_response(context: dict, question: str) -> str:
     # Question routing
     q = question.lower()
     if "safe" in q and "travel" in q:
-        lines.append("✈️ Travel: Agli din weather normal hai, safe rahega. Lekin last-minute official updates check karein.")
+        lines.append("✈️ Travel: weather looks normal tomorrow, should be safe. But check last-minute official updates.")
     elif "heat" in q or "cool" in q:
-        lines.append("🥤 Cool karne ke liye paani, juice, aur AC wali cheezon ka use karein. Thandi siitron lein.")
+        lines.append("🥤 To stay cool, drink water, juice, and use AC/cooling. Take cold showers.")
     elif "rain" in q:
-        lines.append("🌂 Barf wali cheezein: umbrella, raincoat, shoes. Road wet ho sakta hai.")
+        lines.append("🌂 Rain gear: umbrella, raincoat, shoes. Roads may be wet.")
     elif "pack" in q or "what to bring" in q:
         lines.append("🎒 Packing list: light cotton clothes, water bottle, sunscreen, cap, and a light jacket.")
     elif "workout" in q or "gym" in q:
-        lines.append("🏃 Workout: " + ("Subah 5-7 baje jaldi karein, afternoon mein avoid karein." if temp > 35 else "Thodi late tareekh mein tackle karein."))
+        lines.append("🏃 Workout: " + ("Exercise early 5-7 AM, avoid afternoon." if temp > 35 else "Tackle it a bit later."))
     elif "air" in q or "pollution" in q or "mask" in q:
-        lines.append("😷 Air quality bad hai — khaas kar subah-jagaan, N95 mask use karein.")
+        lines.append("😷 Air quality is bad — especially in the morning, use an N95 mask.")
 
     if not lines:
-        lines.append(f"✅ {loc} mein aaj {temp}°C, {cond}. Safer rahein, paani piyein.")
+        lines.append(f"✅ {loc} today is {temp}°C, {cond}. Stay safe and drink water.")
 
     return " ".join(lines)
 

@@ -155,13 +155,13 @@ body.night .sky{filter:brightness(.4)}
     <select class="sel" id="districtSelect" aria-label="Select district" style="flex:1;min-width:140px">
       <option value="">-- Select District --</option>
     </select>
-    <input id="placesearch" placeholder="Koi bhi city/village search karo (e.g. Koraput, Puri)" style="flex:1;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 10px;font-size:13px">
+    <input id="placesearch" placeholder="Search any city or village (e.g. Koraput, Puri)" style="flex:1;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 10px;font-size:13px">
     <button class="btn" id="searchbtn">Search</button>
     <button class="btn" id="locbtn">📍 My Location</button>
   </div>
   <div class="row" style="margin:6px 0 10px;gap:6px">
     <select class="sel" id="odishaPlaces" aria-label="Odisha cities and villages" style="flex:1;min-width:200px">
-      <option value="">-- Odisha: har city/village select karo --</option>
+      <option value="">-- Odisha: select any city/village --</option>
     </select>
     <button class="btn" id="odishaLoadBtn">Load</button>
   </div>
@@ -439,8 +439,8 @@ $('cities').innerHTML=`<select class="sel" id="st" aria-label="State or union te
 const ss=$('stateSelect'); if(ss){ ss.innerHTML='<option value="">-- Select State --</option>'+INDIAN_STATES.map(s=>`<option value="${s}">${s}</option>`).join(''); }
 const ds=$('districtSelect'); if(ds){ ds.innerHTML='<option value="">-- Select District --</option>'; }
 // Populate Odisha cities/villages dropdown
-const op=$('odishaPlaces'); if(op){ op.innerHTML='<option value="">-- Odisha: har city/village select karo --</option>'+ODISHA_PLACES.map(p=>`<option value="${p}">${p}</option>`).join(''); }
-$('odishaLoadBtn').onclick=async()=>{ const v=$('odishaPlaces').value; if(!v){toast('Odisha place select karo');return;} $('placesearch').value=v; await searchPlace(); };
+const op=$('odishaPlaces'); if(op){ op.innerHTML='<option value="">-- Odisha: select any city/village --</option>'+ODISHA_PLACES.map(p=>`<option value="${p}">${p}</option>`).join(''); }
+$('odishaLoadBtn').onclick=async()=>{ const v=$('odishaPlaces').value; if(!v){toast('Select an Odisha place');return;} $('placesearch').value=v; await searchPlace(); };
 $('stateSelect').addEventListener('change', e=>{
   const st=e.target.value;
   const ds=$('districtSelect');
@@ -454,7 +454,7 @@ $('placesearch').addEventListener('keydown',e=>{if(e.key==='Enter')searchPlace()
 $('locbtn').onclick=useMyLocation;
 async function useMyLocation(){
   if(!navigator.geolocation){toast('Geolocation not supported');return}
-  toast('Location detect ho raha hai...');
+  toast('Detecting location...');
   navigator.geolocation.getCurrentPosition(async pos=>{
     const lat=pos.coords.latitude, lon=pos.coords.longitude;
     C.push(['My Location',2]); COORDS.push([lat,lon]);
@@ -463,16 +463,16 @@ async function useMyLocation(){
     $('st').value=city;
     $('st').addEventListener('change',e=>{city=+e.target.value;loadLive()});
     await loadLive();
-    toast('Aapki location ka weather load hua');
+    toast('Weather loaded for your location');
   }, err=>toast('Location error: '+err.message));
 }
 async function searchPlace(){
   const q=$('placesearch').value.trim();
-  if(!q){toast('City/village name likho');return}
+  if(!q){toast('Enter a city or village name');return}
   try{
     const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=en&format=json`);
     const j=await r.json();
-    if(!j.results||!j.results.length){toast('Place nahi mila');return}
+    if(!j.results||!j.results.length){toast('Place not found');return}
     const p=j.results[0];
     const name=p.name+(p.admin1?`, ${p.admin1}`:'')+(p.country?`, ${p.country}`:'');
     C.push([name,2]); COORDS.push([p.latitude,p.longitude]);
@@ -840,7 +840,7 @@ $('imgfile').addEventListener('change',e=>{
   rd.readAsDataURL(f);
 });
 async function analyzeImage(){
-  if(!imgBase64){toast('Pehle image select karo');return}
+  if(!imgBase64){toast('Select an image first');return}
   const el=$('imgres'); el.textContent='Analyzing...';
   try{
     const BE=location.protocol.startsWith('http')?location.origin:null;
@@ -853,12 +853,12 @@ async function analyzeImage(){
 async function geocodePlace(name){
   const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=en&format=json`);
   const j=await r.json();
-  if(!j.results||!j.results.length) throw new Error(name+' nahi mila');
+  if(!j.results||!j.results.length) throw new Error(name+' not found');
   return j.results[0];
 }
 async function checkRoute(){
   const from=$('fromplace').value.trim(), to=$('toplace').value.trim();
-  if(!from||!to){toast('From aur To dono likho');return}
+  if(!from||!to){toast('Enter both From and To locations');return}
   const el=$('routeres'); el.textContent='Checking...';
   const dateStr=$('routedate').value;
   try{
@@ -894,7 +894,7 @@ async function fetchNews(place){
     const xml=new DOMParser().parseFromString(j.contents,'text/xml');
     const items=[...xml.querySelectorAll('item')].slice(0,8);
     if(!items.length){el.textContent='No news found.';return}
-    el.innerHTML=items.map(it=>`<div style="margin-bottom:6px"><a href="${it.querySelector('link').textContent}" target="_blank" style="color:var(--cy)">${it.querySelector('title').textContent}</a><br><span style="color:#7d93b5;font-size:11px">${it.querySelector('pubDate')?it.querySelector('pubDate').textContent:''}</span></div>`).join('');
+    el.innerHTML=items.map(it=>`<div style="margin-bottom:8px"><b>${it.title}</b><br><span style="color:#7d93b5;font-size:11px">${it.pubDate||''}</span><br>${it.description?it.description.slice(0,220)+'...':''} ${it.link?`<a href="${it.link}" target="_blank" style="color:var(--cy)">details</a>`:''}</div>`).join('');
   }catch(e){el.textContent='News unavailable: '+e.message;}
 }
 
@@ -1067,6 +1067,8 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register(swUrl).catch(()=>{});
 }
 
+let CY_ITEMS=[];
+
 // ---------- Cyclone tracker ----------
 async function fetchCyclones(){
   const el=$('cyclonetxt'); el.textContent='Loading cyclone data...';
@@ -1075,9 +1077,96 @@ async function fetchCyclones(){
     const r=await fetch((BE?BE:'/')+'/api/cyclones');
     const j=await r.json();
     const items=j.items||[];
-    if(!items.length){el.textContent='No active cyclone threats reported.';return}
-    el.innerHTML=items.map(it=>`<div style="margin-bottom:8px"><b>${it.title}</b><br><span style="color:#7d93b5;font-size:11px">${it.pubDate||''}</span><br>${it.description?it.description.slice(0,220)+'...':''} ${it.link?`<a href="${it.link}" target="_blank" style="color:var(--cy)">details</a>`:''}</div>`).join('');
-  }catch(e){el.textContent='Cyclone data unavailable: '+e.message;}
+CY_ITEMS=[...items];
+    if(!CY_ITEMS.length){el.textContent='No active cyclone threats reported.';drawCycloneMap([]);return}
+    el.innerHTML=items.map(it=>`<div style=\"margin-bottom:8px\"><b>${it.title}</b><br><span style=\"color:#7d93b5;font-size:11px\">${it.pubDate||''}</span><br>${it.description?it.description.slice(0,220)+'...':''} ${it.link?`<a href=\"${it.link}\" target=\"_blank\" style=\"color:var(--cy)\">details</a>`:''}</div>`).join('');
+    drawCycloneMap(items);
+  }catch(e){el.textContent='Cyclone data unavailable: '+e.message;drawCycloneMap([]);}
+}
+
+function drawCycloneMap(items){
+  const canvas=CY_CANVAS;
+  const ctx=CY_CTX;
+  const W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#050914';
+  ctx.fillRect(0,0,W,H);
+  if(!items.length){
+    ctx.fillStyle='#2a3a4a';
+    ctx.fillRect(8,8,W-16,H-16);
+    ctx.fillStyle='#7d93b5';
+    ctx.font='12px system-ui,sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText('No active cyclone threats reported',W/2,H/2);
+    return;
+  }
+  const lons=items.map(x=>parseFloat(x.lon)||0);
+  const lats=items.map(x=>parseFloat(x.lat)||0);
+  const minLon=Math.min(...lons), maxLon=Math.max(...lons);
+  const minLat=Math.min(...lats), maxLat=Math.max(...lats);
+  const INDIA_LONW=60, INDIA_LONE=100, INDIA_LATN=5, INDIA_LATS=35;
+  let lonw=INDIA_LONW, lone=INDIA_LONE, latn=INDIA_LATN, latn2=INDIA_LATS;
+  if((maxLon-minLon)<170 && (maxLat-minLat)<45){
+    lonw=Math.max(-180,Math.min(minLon-4,-176));
+    lone=Math.min(180,Math.max(maxLon+4,176));
+    latn=Math.max(-80,Math.min(minLat-3,-77));
+    latn2=Math.min(80,Math.max(maxLat+3,77));
+  } else {
+    lonw=INDIA_LONW; lone=INDIA_LONE; latn=INDIA_LATN; latn2=INDIA_LATS;
+  }
+  const pad=18;
+  const pxLon=(W-pad*2)/(lone-lonw);
+  const pxLat=(H-pad*2)/(latn2-latn);
+  const plotX=(lon)=>pad+(lon-lonw)*pxLon;
+  const plotY=(lat)=>pad+(latn2-lat)*pxLat;
+
+  ctx.fillStyle='#0a1a2a';
+  ctx.fillRect(pad/2,pad/2,W-pad,H-pad);
+  ctx.strokeStyle='#00e5ff44';
+  ctx.lineWidth=2;
+  ctx.strokeRect(pad/2,pad/2,W-pad,H-pad);
+
+  const cx=W-pad/2, cy=H/2;
+  const R=Math.min(56,H/3);
+  ctx.beginPath();
+  ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.fillStyle='#0e3a5a';
+  ctx.fill();
+  ctx.strokeStyle='#00e5ff66';
+  ctx.lineWidth=2;
+  ctx.stroke();
+  for(let i=0;i<16;i++){
+    const a=Math.random()*Math.PI*2;
+    const rr=R*0.5;
+    ctx.beginPath();
+    ctx.arc(cx+Math.cos(a)*rr, cy+Math.sin(a)*R*0.6, 1.8, 0, Math.PI*2);
+    ctx.fillStyle='#00e5ff44';
+    ctx.fill();
+  }
+
+  for(let i=0;i<items.length;i++){
+    const it=items[i];
+    const lat=parseFloat(it.lat), lon=parseFloat(it.lon);
+    if(!isFinite(lat)||!isFinite(lon)) continue;
+    const x=plotX(lon), y=plotY(lat);
+    ctx.beginPath();
+    ctx.arc(x,y,8,0,Math.PI*2);
+    ctx.fillStyle='#ff3b5c';
+    ctx.fill();
+    ctx.strokeStyle='#ff3b5caa';
+    ctx.lineWidth=2;
+    ctx.stroke();
+    ctx.fillStyle='#ffffff';
+    ctx.font='10px system-ui,sans-serif';
+    ctx.textAlign='left';
+    ctx.fillText(it.title?it.title.split(' ').slice(0,4).join(' '):'Cyclone', x+12, y+4);
+  }
+
+  const now=new Date().toLocaleTimeString('en-GB',{hour12:false});
+  ctx.fillStyle='#7d93b5';
+  ctx.font='11px system-ui,sans-serif';
+  ctx.textAlign='right';
+  ctx.fillText('GeoJSON cyclone feed · '+now, W-pad, H-6);
 }
 function drawCyclone(){ fetchCyclones(); }
 // override render to call drawCyclone
@@ -1117,7 +1206,7 @@ function roadConditions(){
 // ---------- Daily digest subscribe ----------
 $('digestbtn').onclick=()=>{
   const v=$('digestemail').value.trim();
-  if(!v){toast('Email/phone likho');return}
+  if(!v){toast('Enter email or phone');return}
   const subs=JSON.parse(localStorage.getItem('aegis_subs')||'[]');
   subs.push({contact:v, saved:new Date().toISOString()});
   localStorage.setItem('aegis_subs',JSON.stringify(subs));
