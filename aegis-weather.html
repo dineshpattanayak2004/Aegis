@@ -291,6 +291,9 @@ body.night .sky{filter:brightness(.4)}
       <h3>🌀 Cyclone tracker</h3>
       <canvas id="cyclonecanvas" width="600" height="200" style="width:100%;height:200px"></canvas>
       <div id="cyclonetxt" style="font-size:13px;line-height:1.6;margin-top:6px"></div>
+      <div style="margin-top:8px">
+        <iframe id="cyclonemap" src="https://embed.windy.com/embed2.html?lat=20&lon=80&zoom=4&overlay=wind&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1" style="width:100%;height:260px;border:0;border-radius:12px" loading="lazy"></iframe>
+      </div>
     </div>
 
     <div class="card span2" id="imdcard">
@@ -415,8 +418,20 @@ function fmtSpd(x){return Math.round(spd(x))+' '+(units.speed==='mph'?'mph':'km/
 try{const u=JSON.parse(localStorage.getItem('aegis_units')||'null');if(u)units=u;const l=localStorage.getItem('aegis_light');if(l==='1')lightMode=true;}catch(e){}
 function applyUnits(){localStorage.setItem('aegis_units',JSON.stringify(units));$('bunit').textContent=(units.temp==='F'?'°F':'°C')+' / '+(units.speed==='mph'?'mph':'km/h');render();updateDetails();renderHourly();}
 function toggleUnits(){if(units.temp==='C'){units.temp='F';units.speed='mph';}else{units.temp='C';units.speed='kmh';}applyUnits();}
-function applyLight(){document.body.classList.toggle('light',lightMode);localStorage.setItem('aegis_light',lightMode?'1':'0');$('blight').textContent=lightMode?'Dark mode':'Light mode';}
-function toggleLight(){lightMode=!lightMode;applyLight();}
+let themeMode=localStorage.getItem('aegis_theme_mode')||'dark';
+function applyTheme(){
+  if(themeMode==='auto'){
+    const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+    lightMode = prefersLight;
+  } else {
+    lightMode = (themeMode==='light');
+  }
+  document.body.classList.toggle('light',lightMode);
+  localStorage.setItem('aegis_theme_mode',themeMode);
+  localStorage.setItem('aegis_light',lightMode?'1':'0');
+  $('blight').textContent = themeMode==='auto' ? 'Theme: Auto' : (lightMode?'Theme: Light':'Theme: Dark');
+}
+function toggleTheme(){ themeMode = themeMode==='dark'?'light':(themeMode==='light'?'auto':'dark'); applyTheme(); }
 const rd=$('rad'),rc=rd.getContext('2d'),sm=$('seis'),sc=sm.getContext('2d'),fx=$('fx'),fc=fx.getContext('2d'),buf=Array(160).fill(0);
 
 $('cities').innerHTML=`<select class="sel" id="st" aria-label="State or union territory">${C.map(([n],i)=>`<option value="${i}">${n}</option>`).join('')}</select>`;
@@ -1021,8 +1036,11 @@ $('bsh').onclick=async()=>{
 };
 
 $('bunit').onclick=toggleUnits;
-$('blight').onclick=toggleLight;
-applyUnits(); applyLight();
+$('blight').onclick=toggleTheme;
+// apply
+applyUnits(); applyTheme();
+// auto theme listener
+try{ window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', ()=>{ if(themeMode==='auto') applyTheme(); }); }catch(e){}
 
 let touchStartY=0;
 addEventListener('touchstart',e=>{touchStartY=e.touches[0].clientY},{passive:true});
