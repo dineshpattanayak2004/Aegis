@@ -61,7 +61,7 @@ fetch('/api/quakes').then(r => r.json()).then(list => {
 // Tick clock every second
 setInterval(() => {
   const now = new Date();
-  document.getElementById('clock').textContent = now.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) + ' IST';
+  const d=new Date();const h=d.getHours()%12||12;const m=d.getMinutes()<10?'0':'';const s=d.getSeconds()<10?'0':'';const ap=h>=12?'PM':'AM';document.getElementById('clock').textContent=h+':'+m+s+' '+ap+' IST';
   document.getElementById('clockdate').textContent = now.toLocaleDateString('en', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
 }, 1000);
 
