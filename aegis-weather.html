@@ -442,8 +442,8 @@ function applyTheme(k){
   document.querySelectorAll('[data-th]').forEach(el=>el.classList.toggle('on',el.dataset.th===k));
 }
 const COORDS=[[16.5,80.5],[27.1,93.6],[26.1,91.8],[25.6,85.1],[21.25,81.6],[15.5,73.8],[23.2,72.6],[30.7,76.8],[31.1,77.2],[23.3,85.3],[13.0,77.6],[8.5,76.9],[23.3,77.4],[19.1,72.9],[24.8,93.9],[25.6,91.9],[23.7,92.7],[25.7,94.1],[20.84,85.10],[20.71,83.49],[21.49,86.93],[21.33,83.62],[21.06,86.50],[20.84,84.32],[20.46,85.88],[21.54,84.73],[20.65,85.60],[19.16,84.18],[19.38,84.97],[20.25,86.17],[20.85,86.34],[21.85,84.01],[19.91,83.17],[20.14,84.05],[20.50,86.42],[21.63,85.58],[20.18,85.62],[18.81,82.71],[18.35,81.89],[21.93,86.73],[19.24,82.55],[20.13,85.10],[20.82,82.55],[19.81,85.83],[19.17,83.42],[21.47,83.97],[20.84,83.92],[22.12,84.02],[30.7,76.8],[26.9,75.8],[27.3,88.6],[13.1,80.3],[17.4,78.5],[23.8,91.3],[26.9,80.9],[30.3,78.0],[22.6,88.4],[11.6,92.7],[30.7,76.8],[20.3,73.0],[28.6,77.2],[34.1,74.8],[34.2,77.6],[10.6,72.6],[11.9,79.8]];
-const WX=c=>c>=95?'storm':(c>=71&&c<=86)?'snow':c>=51?'rain':c>=2?'cloud':'sun';
-const WT=(c,night=false)=>c>=95?'Thunderstorm':c>=85?'Snow showers':c>=71?'Snowfall':c>=80?'Rain showers':c>=51?'Rain':c>=45?'Fog':c>=2?'Partly cloudy':(night?'Clear night':'Clear sky');
+const WX=c=>c>=95?'storm':(c>=85&&c<=86)?'snow':(c>=71&&c<=77)?'snow':c>=61?'rain':c>=51?'rain':c>=2?'cloud':'sun';
+const WT=(c,night=false)=>c>=95?'Thunderstorm':c>=85?'Snow showers':c>=80?'Rain showers':c>=71?'Snowfall':c>=61?'Rain':c>=51?'Drizzle':c>=45?'Fog':c>=2?'Partly cloudy':(night?'Clear night':'Clear sky');
 const SKY={sun:S.clear.sky,moon:'linear-gradient(170deg,#02040a,#0b1a33 60%,#1a2a4a)',cloud:'linear-gradient(170deg,#1b2735,#4b6584 60%,#a9b9cc)',rain:S.flood.sky,storm:S.storm.sky,snow:S.snow.sky};
 let REALT=null;
 async function loadLive(){
