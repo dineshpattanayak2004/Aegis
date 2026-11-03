@@ -140,6 +140,9 @@ body.night .sky{filter:brightness(.4)}
     <select class="sel" id="stateSelect" aria-label="Select state" style="flex:1;min-width:140px">
       <option value="">-- Select State --</option>
     </select>
+    <select class="sel" id="districtSelect" aria-label="Select district" style="flex:1;min-width:140px">
+      <option value="">-- Select District --</option>
+    </select>
     <input id="placesearch" placeholder="Koi bhi city/village search karo (e.g. Koraput, Puri)" style="flex:1;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 10px;font-size:13px">
     <button class="btn" id="searchbtn">Search</button>
     <button class="btn" id="locbtn">📍 My Location</button>
@@ -373,6 +376,8 @@ const $=id=>document.getElementById(id);
 const C=[['Andhra Pradesh',3],['Arunachal Pradesh',-4],['Assam',2],['Bihar',3],['Chhattisgarh',3],['Goa',2],['Gujarat',3],['Haryana',2],['Himachal Pradesh',-6],['Jharkhand',2],['Karnataka',0],['Kerala',1],['Madhya Pradesh',2],['Maharashtra',2],['Manipur',0],['Meghalaya',-1],['Mizoram',-1],['Nagaland',0],['Angul',2],['Balangir',2],['Balasore',2],['Bargarh',2],['Bhadrak',2],['Boudh',2],['Cuttack',2],['Deogarh',2],['Dhenkanal',2],['Gajapati',2],['Ganjam',2],['Jagatsinghpur',2],['Jajpur',2],['Jharsuguda',2],['Kalahandi',2],['Kandhamal',2],['Kendrapara',2],['Keonjhar',2],['Khordha',2],['Koraput',2],['Malkangiri',2],['Mayurbhanj',2],['Nabarangpur',2],['Nayagarh',2],['Nuapada',2],['Puri',2],['Rayagada',2],['Sambalpur',2],['Subarnapur',2],['Sundargarh',2],['Punjab',0],['Rajasthan',5],['Sikkim',-4],['Tamil Nadu',2],['Telangana',2],['Tripura',1],['Uttar Pradesh',2],['Uttarakhand',-3],['West Bengal',1],['Andaman and Nicobar Islands',1],['Chandigarh',1],['Dadra and Nagar Haveli and Daman and Diu',3],['Delhi',2],['Jammu and Kashmir',-4],['Ladakh',-10],['Lakshadweep',1],['Puducherry',2]];
 const TH={neon:['Neon Cyber','#00e5ff','#050914'],aurora:['Aurora','#3dffa0','#03110d'],vapor:['Vaporwave','#ff71ce','#14062a'],tiranga:['Tiranga','#ff9933','#0b1410'],desert:['Thar Desert','#ffb300','#1a0f05'],himalaya:['Himalayan Ice','#9be7ff','#0a1622'],monsoon:['Monsoon','#4fd1c5','#06161c']};
 const INDIAN_STATES=['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Andaman and Nicobar Islands','Chandigarh','Dadra and Nagar Haveli and Daman and Diu','Delhi','Jammu and Kashmir','Ladakh','Lakshadweep','Puducherry'];
+const ODISHA_DISTRICTS=['Angul','Balangir','Balasore','Bargarh','Bhadrak','Boudh','Cuttack','Deogarh','Dhenkanal','Gajapati','Ganjam','Jagatsinghpur','Jajpur','Jharsuguda','Kalahandi','Kandhamal','Kendrapara','Keonjhar','Khordha','Koraput','Malkangiri','Mayurbhanj','Nabarangpur','Nayagarh','Nuapada','Puri','Rayagada','Sambalpur','Subarnapur','Sundargarh'];
+const STATE_DISTRICTS={'Odisha':ODISHA_DISTRICTS};
 // Comprehensive Odisha cities/towns/villages (district HQs + major blocks/ULBs). Extendable; search covers any village.
 const ODISHA_PLACES=['Angul','Talcher','Athmallik','Pallahara','Chhendipada','Balangir','Patnagarh','Titlagarh','Kantabanji','Saintala','Balasore','Soro','Jaleswar','Nilgiri','Bhograi','Basta','Baleshwar','Bargarh','Barpali','Padampur','Bheden','Attabira','Bijepur','Bhadrak','Basudevpur','Chandbali','Dhamnagar','Tihidi','Boudh','Purunakatak','Kantamal','Cuttack','Choudwar','Athagarh','Banki','Baranga','Niali','Salepur','Tangi','Deogarh','Reamal','Tileibani','Dhenkanal','Kamakhyanagar','Hindol','Parjang','Odapada','Gajapati','Paralakhemundi','Kashinagar','Gumma','Rayagada','Ganjam','Berhampur','Chhatrapur','Aska','Bhanjanagar','Buguda','Kabisuryanagar','Khalikote','Polasara','Purusottampur','Sanakhemundi','Sorada','Jagatsinghpur','Paradip','Balikuda','Erasama','Kujang','Naugaon','Raghunathpur','Tirtol','Jajpur','Jajpur Road','Binjharpur','Bari','Dharmasala','Rasulpur','Sukinda','Vyasanagar','Jharsuguda','Brajarajnagar','Belpahar','Laikera','Kolabira','Kuchinda','Kalahandi','Bhawanipatna','Junagarh','Dharamgarh','Kesinga','Lanjigarh','Narla','Thuamul Rampur','Kandhamal','Phulbani','Baliguda','Daringbadi','G. Udayagiri','Raikia','Tikabali','Kendrapara','Pattamundai','Aali','Derabish','Garadapur','Mahakalapada','Marshaghai','Rajkanika','Keonjhar','Anandapur','Barbil','Champua','Ghatgaon','Harichandanpur','Hatadihi','Joda','Patna','Saharpada','Telkoi','Khordha','Bhubaneswar','Jatni','Khordha','Begunia','Bolagarh','Chilika','Tangi','Koraput','Jeypore','Sunabeda','Borigumma','Dasamantapur','Kotpad','Laxmipur','Nandapur','Pottangi','Semiliguda','Malkangiri','Chitrakonda','Kalimela','Mathili','Motu','Podia','Mayurbhanj','Baripada','Bahalda','Bangriposi','Badasahi','Betnoti','Bijatala','Jashipur','Karandia','Khunta','Morada','Rairangpur','Rasgovindpur','Saraskana','Udala','Nabarangpur','Jharigam','Kosagumuda','Nandahandi','Papadahandi','Raighar','Tentulikhunti','Umerkote','Nayagarh','Dasapalla','Gania','Khandapada','Nuagaon','Odagaon','Ranpur','Nuapada','Khariar','Komna','Boden','Sinapali','Puri','Konark','Pipili','Satyabadi','Brahmagiri','Delang','Kakatpur','Krishnaprasad','Nimapada','Puri Sadar','Rayagada','Gunupur','Bissam Cuttack','Chandrapur','Gudari','Kashipur','Kolnara','Muniguda','Padmapur','Ramanaguda','Sambalpur','Burla','Hirakud','Kuchinda','Maneswar','Rairakhol','Redhakhol','Jamtani','Subarnapur','Birmaharajpur','Sonepur','Tarbha','Binika','Dunguripali','Ullunda','Sundargarh','Rourkela','Rajgangpur','Biramitrapur','Bonai','Gurundia','Hemgir','Koida','Lahunipada','Lathikata','Nuagaon','Subdega','Talsara'];
 let ACC='#00e5ff';
@@ -405,10 +410,18 @@ const rd=$('rad'),rc=rd.getContext('2d'),sm=$('seis'),sc=sm.getContext('2d'),fx=
 $('cities').innerHTML=`<select class="sel" id="st" aria-label="State or union territory">${C.map(([n],i)=>`<option value="${i}">${n}</option>`).join('')}</select>`;
 // Populate select-state dropdown
 const ss=$('stateSelect'); if(ss){ ss.innerHTML='<option value="">-- Select State --</option>'+INDIAN_STATES.map(s=>`<option value="${s}">${s}</option>`).join(''); }
+const ds=$('districtSelect'); if(ds){ ds.innerHTML='<option value="">-- Select District --</option>'; }
 // Populate Odisha cities/villages dropdown
 const op=$('odishaPlaces'); if(op){ op.innerHTML='<option value="">-- Odisha: har city/village select karo --</option>'+ODISHA_PLACES.map(p=>`<option value="${p}">${p}</option>`).join(''); }
 $('odishaLoadBtn').onclick=async()=>{ const v=$('odishaPlaces').value; if(!v){toast('Odisha place select karo');return;} $('placesearch').value=v; await searchPlace(); };
-$('stateSelect').addEventListener('change', e=>{ if(e.target.value==='Odisha'){ $('odishaPlaces').scrollIntoView({behavior:'smooth',block:'nearest'}); } });
+$('stateSelect').addEventListener('change', e=>{
+  const st=e.target.value;
+  const ds=$('districtSelect');
+  const dlist=STATE_DISTRICTS[st]||[];
+  if(ds){ ds.innerHTML='<option value="">-- Select District --</option>'+dlist.map(d=>`<option value="${d}">${d}</option>`).join(''); }
+  if(st==='Odisha'){ const op=$('odishaPlaces'); if(op) op.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+});
+$('districtSelect').addEventListener('change', async e=>{ const v=e.target.value; if(!v) return; $('placesearch').value=v; await searchPlace(); });
 $('searchbtn').onclick=searchPlace;
 $('placesearch').addEventListener('keydown',e=>{if(e.key==='Enter')searchPlace();});
 $('locbtn').onclick=useMyLocation;
@@ -1015,6 +1028,8 @@ const mBlob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
 const mUrl=URL.createObjectURL(mBlob);
 const mLink=document.createElement('link'); mLink.rel='manifest'; mLink.href=mUrl; document.head.appendChild(mLink);
 
+// Auto-request location when app opens
+try { if (navigator.geolocation) { setTimeout(()=>{ useMyLocation(); }, 800); } } catch(e){}
 if('serviceWorker' in navigator){
   const swCode=`self.addEventListener('install',e=>{e.waitUntil(caches.open('aegis-v1').then(c=>c.addAll(['/'])));});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));});`;
   const swBlob=new Blob([swCode],{type:'application/javascript'});
