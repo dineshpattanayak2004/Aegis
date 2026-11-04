@@ -1061,7 +1061,15 @@ const mLink=document.createElement('link'); mLink.rel='manifest'; mLink.href=mUr
 // Auto-request location when app opens
 try { if (navigator.geolocation) { setTimeout(()=>{ useMyLocation(); }, 800); } } catch(e){}
 if('serviceWorker' in navigator){
-  const swCode=`self.addEventListener('install',e=>{e.waitUntil(caches.open('aegis-v1').then(c=>c.addAll(['/'])));});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));});`;
+  // Service worker disabled for Vercel compatibility
+// The previous service worker cached the root page, causing blank content
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    for (let registration of registrations) {
+      registration.unregister();
+    }
+  });
+}
   const swBlob=new Blob([swCode],{type:'application/javascript'});
   const swUrl=URL.createObjectURL(swBlob);
   navigator.serviceWorker.register(swUrl).catch(()=>{});
@@ -1236,7 +1244,9 @@ addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); deferredPrompt=e
 // wire new features on load
 fetchIMDAlerts(); setInterval(fetchIMDAlerts, 600000);
 
+try {
 applyTheme('neon');setScen('clear');loadLive();loadQuakes();setInterval(loadQuakes,120000);connectWS();fetchAIWx();setInterval(()=>fetchAIWx(),120000);maybeAutoLoc();
+} catch(e) { console.error('AEGIS init error:', e); document.body.innerHTML = '<div style="color:red;padding:20px;font-family:monospace">AEGIS Error: ' + e.message + '<br><pre>' + e.stack + '</pre></div>'; }
 if('Notification' in window&&Notification.permission==='granted')$('bn').textContent='Alerts on ✓';
 </script>
 </body>

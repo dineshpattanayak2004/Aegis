@@ -1,0 +1,19 @@
+{
+  "builds": [
+    {
+      "src": "aegis_server.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "aegis_server.py"
+    }
+  ],
+  "env": {
+    "AI_PROVIDER": "ollama",
+    "GEMINI_API_KEY": "",
+    "PYTHON_VERSION": "3.11"
+  }
+}
